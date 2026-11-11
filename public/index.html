@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2F3336">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Synafood">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Synafood</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: eine Spalte wie ein langer Thermo-Kassenzettel auf dunklem Kassentresen; unten das Kassendisplay mit deiner Summe. */
+:root{
+  --counter:#2F3336; --paper:#FBF9F3; --ink:#1D1C1A; --faded:#77736B; --line:#BDB8AC;
+  --red:#C2372B; --hi:#F3E27A; --ok:#2E6B3F;
+  --font-display:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-body:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --z:7px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--counter); color:var(--ink); font-family:var(--font-body); font-size:15px; line-height:1.45;
+  font-variant-numeric:tabular-nums; -webkit-tap-highlight-color:transparent;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  background-image:radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px); background-size:4px 4px;
+}
+body.has-bar{padding-bottom:calc(118px + env(safe-area-inset-bottom))}
+.mono{font-family:var(--font-mono)}
+h1,h2,h3{font-family:var(--font-display); text-wrap:balance; margin:0; line-height:1.2; text-transform:uppercase; letter-spacing:.04em}
+h1{font-size:1.35rem; font-weight:700}
+h2{font-size:.95rem; font-weight:700}
+a{color:var(--ink)}
+button,input,select,textarea{font:inherit; color:inherit}
+:focus-visible{outline:2px dashed var(--red); outline-offset:3px}
+.wrap{max-width:560px; margin:0 auto; padding:0 16px}
+
+/* Papier mit gezackten Abrisskanten */
+.paper{
+  background:var(--paper); position:relative; padding:calc(var(--z) + 16px) 18px;
+  -webkit-mask:conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top/calc(2*var(--z)) 51% repeat-x, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom/calc(2*var(--z)) 51% repeat-x;
+  mask:conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top/calc(2*var(--z)) 51% repeat-x, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom/calc(2*var(--z)) 51% repeat-x;
+}
+.rule{border-top:2px dashed var(--line); margin:14px 0}
+.rule.double{border-top:3px double var(--ink); margin:12px 0 10px}
+
+/* Kopf */
+.top{display:grid; justify-items:center; gap:6px; text-align:center; margin:14px 0 12px}
+.brand{text-decoration:none; color:var(--ink); display:grid; gap:2px}
+.brand-name{font-weight:700; font-size:1.7rem; letter-spacing:.28em; padding-left:.28em}
+.brand-sub{font-size:.75rem; color:var(--faded); letter-spacing:.12em}
+.me-pill{border:0; background:none; cursor:pointer; font-size:.82rem; color:var(--faded); padding:4px 8px; letter-spacing:.04em}
+.me-pill b{color:var(--ink)}
+.me-pill .u{text-decoration:underline; text-underline-offset:3px}
+
+.banner{font-size:.78rem; color:var(--ink); background:var(--hi); padding:8px 12px; margin:0 0 12px; border-radius:2px}
+.tabs{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 14px}
+.tabs a{text-align:center; padding:9px 8px; text-decoration:none; color:var(--paper); font-weight:600; font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; border:1.5px dashed rgba(255,255,255,.35); border-radius:4px}
+.tabs a[aria-current="page"]{background:var(--paper); color:var(--ink); border-style:solid; border-color:var(--paper)}
+
+/* Buttons wie Kassentasten */
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; border:2px solid var(--ink); background:var(--paper); border-radius:4px; padding:10px 14px; font-weight:700; cursor:pointer; text-decoration:none; color:var(--ink); min-height:44px; text-transform:uppercase; letter-spacing:.05em; font-size:.82rem; box-shadow:0 3px 0 var(--ink)}
+.btn:active{transform:translateY(2px); box-shadow:0 1px 0 var(--ink)}
+.btn.primary{background:var(--ink); color:var(--paper)}
+.btn.ghost{box-shadow:none; border-style:dashed}
+.btn.danger{color:var(--red); border-color:var(--red); box-shadow:0 3px 0 var(--red)}
+.btn.small{min-height:32px; padding:5px 10px; font-size:.74rem; box-shadow:0 2px 0 var(--ink)}
+.btn[disabled]{opacity:.5; cursor:not-allowed}
+.counter-btns .btn{border-color:var(--paper); box-shadow:0 3px 0 #0008}
+.counter-btns .btn:not(.primary){background:transparent; color:var(--paper)}
+.counter-btns .btn.primary{background:var(--paper); color:var(--ink)}
+.icon-btn{width:38px; height:38px; border-radius:4px; border:1.5px dashed var(--line); background:transparent; display:grid; place-items:center; cursor:pointer; color:var(--faded); flex:none}
+.icon-btn:hover{color:var(--ink); border-color:var(--ink)}
+svg.i{width:18px; height:18px; flex:none}
+.actions-row{display:grid; grid-template-columns:1fr auto; gap:10px; margin-bottom:18px}
+
+/* Listen */
+.card{background:var(--paper); padding:16px}
+.stack{display:grid; gap:14px}
+.order-card{display:grid; gap:6px; text-decoration:none; color:var(--ink)}
+.order-card:hover .oc-name{text-decoration:underline}
+.oc-top{display:flex; align-items:baseline; gap:8px}
+.oc-name{font-weight:700; font-size:1rem; flex:1; min-width:0; overflow-wrap:anywhere; text-transform:uppercase; letter-spacing:.03em}
+.oc-meta{font-size:.8rem; color:var(--faded)}
+.oc-meta b{color:var(--ink)}
+.oc-foot{display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:.78rem; color:var(--faded); flex-wrap:wrap}
+.progress{height:8px; border:1.5px solid var(--ink); border-radius:2px; overflow:hidden; background:repeating-linear-gradient(90deg, transparent 0 6px, var(--line) 6px 7px)}
+.progress span{display:block; height:100%; background:var(--ink)}
+.badge{font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; padding:1px 6px; border:1.5px solid var(--red); color:var(--red); border-radius:2px; vertical-align:middle}
+.pill{display:inline-flex; align-items:center; gap:6px; font-size:.74rem; font-weight:700; padding:2px 8px; white-space:nowrap; text-transform:uppercase; letter-spacing:.04em; border-radius:2px}
+.pill.warn{background:var(--hi); color:var(--ink)}
+.pill.ok{border:1.5px solid var(--ok); color:var(--ok)}
+.pill.acc{border:1.5px solid var(--ink)}
+.avatar{display:none}
+.empty{text-align:center; color:var(--faded); padding:22px 8px}
+.hint{font-size:.78rem; color:var(--faded)}
+
+/* Beleg einer Bestellung */
+.back{display:inline-flex; align-items:center; gap:6px; text-decoration:none; font-weight:600; font-size:.82rem; margin:0 0 12px; color:var(--paper); text-transform:uppercase; letter-spacing:.05em}
+.r-head{text-align:center; display:grid; gap:4px}
+.r-sub{font-size:.78rem; color:var(--faded); letter-spacing:.04em}
+.payer{display:grid; justify-items:center; text-align:center; gap:6px; margin:16px 0 4px}
+.eyebrow{font-size:.7rem; text-transform:uppercase; letter-spacing:.14em; color:var(--faded); font-weight:600}
+.payer-name{font-size:1.45rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--red); border:3px double var(--red); padding:4px 16px; transform:rotate(-2deg); border-radius:3px; overflow-wrap:anywhere}
+.payinfo{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:4px; flex-wrap:wrap}
+.payinfo .mono{font-size:.8rem; overflow-wrap:anywhere}
+.meta{color:var(--faded); font-size:.8rem}
+.r-cols{display:flex; justify-content:space-between; font-size:.72rem; font-weight:700; letter-spacing:.1em; color:var(--faded); padding:0 0 4px}
+.receipt{list-style:none; margin:0; padding:0}
+.unit{display:flex; align-items:center; gap:6px; border-bottom:1px dashed var(--line)}
+.unit:last-child{border-bottom:0}
+.check{flex:1; min-width:0; display:flex; align-items:flex-start; gap:10px; padding:10px 2px; cursor:pointer}
+.check input{position:absolute; opacity:0; width:1px; height:1px}
+.box{width:22px; height:22px; border:2px solid var(--ink); border-radius:2px; flex:none; display:grid; place-items:center; margin-top:1px; background:var(--paper)}
+.box svg{width:15px; height:15px; opacity:0; color:var(--paper)}
+.check input:checked + .box{background:var(--ink)}
+.check input:checked + .box svg{opacity:1}
+.check input:focus-visible + .box{outline:2px dashed var(--red); outline-offset:3px}
+.u-main{flex:1; min-width:0; display:grid; gap:3px}
+.u-name{font-weight:600; overflow-wrap:anywhere; text-transform:uppercase; font-size:.9rem; letter-spacing:.02em}
+.u-k{font-size:.72rem; color:var(--faded); font-weight:500; margin-left:4px}
+.u-who{display:flex; flex-wrap:wrap; gap:4px; font-size:.74rem}
+.chip{padding:0 6px; border:1px solid var(--line); border-radius:2px; color:var(--faded)}
+.chip::before{content:"> "}
+.chip.me{border-color:var(--ink); color:var(--ink); font-weight:700}
+.chip.open{background:var(--hi); border-color:transparent; color:var(--ink)}
+.chip.open::before{content:""}
+.u-price{text-align:right; font-weight:600; white-space:nowrap; font-size:.9rem}
+.u-price small{display:block; font-size:.7rem; color:var(--faded); font-weight:500}
+.unit.is-mine .u-name{text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px}
+.extras{list-style:none; margin:0; padding:0; display:grid; gap:2px; font-size:.86rem}
+.extras li{display:flex; justify-content:space-between; gap:10px}
+.r-total{display:flex; justify-content:space-between; align-items:baseline; font-weight:700; font-size:1.25rem; letter-spacing:.04em}
+.r-lines{display:grid; gap:2px; font-size:.82rem; margin-top:6px}
+.r-lines div{display:flex; justify-content:space-between; gap:10px}
+.r-lines .open{background:var(--hi)}
+.r-sec{text-align:center; margin:2px 0 10px; letter-spacing:.12em}
+.r-sec::before,.r-sec::after{content:" * "; color:var(--faded)}
+.barcode{height:46px; margin:18px auto 4px; width:72%; background:repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 5px, transparent 5px 8px, var(--ink) 8px 11px, transparent 11px 12px, var(--ink) 12px 13px, transparent 13px 16px)}
+.r-foot{text-align:center; font-size:.72rem; letter-spacing:.12em; color:var(--faded); text-transform:uppercase}
+
+/* Abrechnung */
+.settle{width:100%; border-collapse:collapse; font-size:.86rem}
+.settle th{font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; color:var(--faded); text-align:left; padding:0 2px 6px; font-weight:700; border-bottom:1.5px solid var(--ink)}
+.settle th:nth-child(2), .settle td:nth-child(2){text-align:right}
+.settle th:last-child, .settle td:last-child{text-align:right; white-space:nowrap}
+.settle td{padding:8px 2px; border-bottom:1px dashed var(--line); vertical-align:top}
+.settle .who{font-weight:700; text-transform:uppercase}
+.settle .what{font-size:.72rem; color:var(--faded); font-weight:400; margin-top:2px}
+.settle tr.is-me .who::before{content:"► "}
+.settle .amt{font-weight:600; white-space:nowrap}
+.status-btn{border:1.5px solid var(--ink); background:transparent; border-radius:2px; padding:3px 8px; font-size:.7rem; font-weight:700; cursor:pointer; white-space:nowrap; text-transform:uppercase; letter-spacing:.06em}
+.status-btn.open{background:var(--hi); border-color:var(--hi)}
+.status-btn.paid{color:var(--ok); border-color:var(--ok); transform:rotate(-3deg)}
+.status-btn.paid::before{content:"✓ "}
+.settle-foot{display:flex; justify-content:space-between; gap:10px; padding-top:10px; border-top:3px double var(--ink); margin-top:6px; font-weight:700; text-transform:uppercase; font-size:.86rem}
+.row-actions{display:flex; gap:10px; flex-wrap:wrap; margin:18px 0 8px}
+.row-actions .btn:not(.danger){background:transparent; color:var(--paper); border-color:var(--paper); box-shadow:0 3px 0 #0008}
+.row-actions .btn.danger{background:transparent; color:#F08A80; border-color:#F08A80; box-shadow:none; border-style:dashed}
+.receipt-img{display:grid; gap:8px}
+.receipt-img img{max-width:100%; border:1px solid var(--line)}
+
+/* Schulden */
+.sum-tiles{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px}
+.tile .k{font-size:.7rem; color:var(--faded); font-weight:700; text-transform:uppercase; letter-spacing:.08em}
+.tile .v{font-size:1.3rem; font-weight:700}
+.tile.warn .v{background:var(--hi); display:inline-block; padding:0 4px}
+.tile.ok .v{color:var(--ok)}
+.pair{display:grid; gap:6px}
+.pair-head{display:flex; align-items:center; gap:8px; justify-content:space-between; padding-bottom:6px; border-bottom:1.5px solid var(--ink)}
+.pair-names{font-weight:700; display:flex; align-items:center; gap:6px; flex-wrap:wrap; text-transform:uppercase}
+.pair-names svg{width:16px; height:16px}
+.pair-line{display:flex; align-items:center; gap:10px; font-size:.82rem; border-bottom:1px dashed var(--line); padding:6px 0}
+.pair-line:last-child{border-bottom:0}
+.pair-line a{flex:1; min-width:0; color:var(--ink); text-decoration:none; overflow-wrap:anywhere}
+.pair-line a:hover{text-decoration:underline}
+.toggle-line{display:flex; align-items:center; gap:8px; font-size:.8rem; color:#D9D5CB; margin:0 2px 12px}
+.toggle-line input{accent-color:var(--paper)}
+.counter-text{color:#D9D5CB}
+
+/* Kassendisplay unten */
+.bar{position:fixed; left:0; right:0; bottom:0; z-index:20; background:#121413; color:#E9F7A6; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); border-top:3px solid #000}
+.bar[hidden]{display:none}
+.bar-inner{max-width:560px; margin:0 auto; display:flex; align-items:center; gap:12px}
+.bar-text{flex:1; min-width:0}
+.bar-k{font-size:.7rem; opacity:.75; font-weight:600; text-transform:uppercase; letter-spacing:.1em}
+.bar-v{font-size:1.7rem; font-weight:700; line-height:1.15; letter-spacing:.04em; text-shadow:0 0 10px rgba(233,247,166,.35)}
+.bar .btn{background:transparent; color:#E9F7A6; border-color:#E9F7A6; box-shadow:0 3px 0 #000}
+.bar .btn.primary{background:#E9F7A6; color:#121413}
+.bar .pill.warn{background:var(--hi)}
+.bar-btns{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+
+/* Sheet (Dialog) */
+.sheet-wrap{position:fixed; inset:0; z-index:40; background:rgba(12,13,13,.6); display:flex; align-items:flex-end; justify-content:center}
+.sheet-wrap[hidden]{display:none}
+.sheet{background:var(--paper); width:100%; max-width:560px; max-height:92%; display:flex; flex-direction:column; border-radius:2px 2px 0 0}
+@media (min-width:700px){ .sheet-wrap{align-items:center} .sheet{max-height:88%} }
+.sheet-head{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px 10px; border-bottom:2px dashed var(--line)}
+.sheet-body{overflow:auto; padding:16px; padding-bottom:calc(16px + env(safe-area-inset-bottom)); display:grid; gap:14px; -webkit-overflow-scrolling:touch}
+.field{display:grid; gap:4px}
+.field label, .lbl{font-size:.7rem; font-weight:700; color:var(--faded); text-transform:uppercase; letter-spacing:.08em}
+.input{width:100%; border:0; border-bottom:2px dotted var(--ink); background:transparent; border-radius:0; padding:8px 2px; min-height:42px; font-size:16px; font-family:var(--font-mono)}
+.input:focus{outline:none; border-bottom-style:solid; background:rgba(243,226,122,.3)}
+select.input{appearance:auto}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:end}
+.erows{display:grid; gap:2px}
+.erow{display:grid; grid-template-columns:44px 1fr 86px 38px; gap:6px; align-items:center}
+.erow .input{padding:6px 2px; min-height:40px}
+.erow .p{text-align:right}
+.erow .q{text-align:center}
+.erow .ltot{grid-column:2 / 4; text-align:right; font-size:.76rem; font-weight:600; margin-top:-2px}
+.erow .ltot:empty{display:none}
+.erow-head{display:grid; grid-template-columns:44px 1fr 86px 38px; gap:6px; font-size:.66rem; color:var(--faded); font-weight:700; text-transform:uppercase; letter-spacing:.08em}
+.erow-head span:nth-child(3){text-align:right}
+.sumline{display:flex; justify-content:space-between; gap:10px; font-size:.82rem; padding:8px 0; border-top:3px double var(--ink); flex-wrap:wrap}
+.sumline.bad{background:var(--hi); padding:8px}
+details.raw summary{cursor:pointer; font-size:.78rem; color:var(--faded); font-weight:600; text-transform:uppercase; letter-spacing:.06em}
+details.raw pre{white-space:pre-wrap; font-size:.74rem; border:1px dashed var(--line); padding:10px; max-height:240px; overflow:auto}
+.thumbs{display:flex; gap:8px; overflow-x:auto}
+.thumbs img{height:110px; border:1px solid var(--line)}
+.name-list{display:grid; gap:0}
+.name-opt{display:flex; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px dashed var(--line); cursor:pointer; text-transform:uppercase; font-weight:600}
+button.name-opt{width:100%; background:none; border:0; border-bottom:1px dashed var(--line); color:var(--ink); text-align:left; font-size:1rem; min-height:48px}
+button.name-opt:hover{background:rgba(243,226,122,.35)}
+button.name-opt.cur::before{content:"► "}
+.name-opt input{width:20px; height:20px; accent-color:var(--ink)}
+.quick{display:flex; flex-wrap:wrap; gap:8px}
+.progress-big{height:14px; border:2px solid var(--ink); overflow:hidden}
+.progress-big span{display:block; height:100%; width:0; background:repeating-linear-gradient(90deg, var(--ink) 0 8px, transparent 8px 10px); transition:width .2s}
+.progress-big.indet span{width:35%; animation:indet 1.3s linear infinite}
+@keyframes indet{from{transform:translateX(-110%)} to{transform:translateX(320%)}}
+.share-row{display:flex; justify-content:center; margin-top:12px}
+.share-url{font-size:.78rem; border:1.5px dashed var(--line); padding:8px 10px; overflow-wrap:anywhere; user-select:all; -webkit-user-select:all}
+.share-btns{display:grid; gap:10px}
+.sheet-foot{display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap}
+
+.crop-wrap{display:flex; justify-content:center}
+.crop{position:relative; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; line-height:0}
+.crop img{display:block; max-width:100%; max-height:58vh; pointer-events:none}
+.crop-box{position:absolute; border:2px solid var(--red)}
+.crop-shade{position:absolute; background:rgba(20,20,20,.6); pointer-events:none}
+.crop-h{position:absolute; width:34px; height:34px; touch-action:none; cursor:grab}
+.crop-h::after{content:""; position:absolute; inset:9px; background:var(--paper); border:3px solid var(--red)}
+.crop-h.tl{left:-17px; top:-17px} .crop-h.tr{right:-17px; top:-17px} .crop-h.bl{left:-17px; bottom:-17px} .crop-h.br{right:-17px; bottom:-17px}
+.toast{position:fixed; left:50%; bottom:calc(132px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--paper); color:var(--ink); border:2px solid var(--ink); padding:8px 14px; font-size:.82rem; z-index:60; max-width:calc(100% - 32px); box-shadow:0 4px 0 var(--ink)}
+.toast[hidden]{display:none}
+.footer-hint{margin:24px 0; font-size:.76rem; color:#BDB8AC; text-align:center}
+.footer-hint .btn{background:transparent; color:var(--paper); border-color:var(--paper)}
+@media (max-width:420px){
+  .actions-row{grid-template-columns:1fr}
+  .bar-v{font-size:1.4rem}
+  .paper{padding-left:14px; padding-right:14px}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} .btn:active{transform:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top paper">
+    <a class="brand" href="#bestellungen"><span class="brand-name">SYNAFOOD</span><span class="brand-sub">*** WER HATTE WAS? ***</span></a>
+    <button class="me-pill" id="mePill" data-action="set-name" type="button"></button>
+  </header>
+  <div id="banner"></div>
+  <main id="app"></main>
+</div>
+
+<div class="bar" id="bar" hidden></div>
+
+<div class="sheet-wrap" id="sheetWrap" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head"><h2 id="sheetTitle"></h2><button class="icon-btn" type="button" data-action="close-sheet" aria-label="Schließen"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<input type="file" id="fileInput" accept="image/*,application/pdf,.pdf" multiple hidden>
+
+<script>
+'use strict';
+/* Gemeinsame Logik: wird vom Synafood-Server 1:1 wiederverwendet (nicht umbenennen). */
+/*REDUCER-START*/
+function nameKey(n){ return String(n || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+function unitKeys(order){
+  const keys = [];
+  for (const it of (order.items || [])) { const q = Math.max(1, Math.min(50, it.qty | 0)); for (let k = 0; k < q; k++) keys.push(it.id + ':' + k); }
+  return keys;
+}
+function applyOp(s, op){
+  s.orders = s.orders || {}; s.claims = s.claims || {}; s.paid = s.paid || {}; s.users = s.users || [];
+  switch (op && op.type) {
+    case 'addUser': {
+      const n = String(op.name || '').trim().slice(0, 40);
+      if (!n || !op.id || s.users.some(u => nameKey(u.name) === nameKey(n))) break;
+      s.users.push({id: String(op.id).slice(0, 40), name: n}); break;
+    }
+    case 'removeUser': s.users = s.users.filter(u => u.id !== op.id); break;
+    case 'upsertOrder': {
+      const o = op.order; if (!o || !o.id) break;
+      s.orders[o.id] = o;
+      const valid = new Set(unitKeys(o)); const c = s.claims[o.id];
+      if (c) for (const u of Object.keys(c)) if (!valid.has(u)) delete c[u];
+      break;
+    }
+    case 'deleteOrder': delete s.orders[op.id]; delete s.claims[op.id]; delete s.paid[op.id]; break;
+    case 'setClaim': {
+      if (!s.orders[op.orderId] || !String(op.name || '').trim()) break;
+      const c = (s.claims[op.orderId] = s.claims[op.orderId] || {});
+      const list = (c[op.unit] = c[op.unit] || []);
+      const k = nameKey(op.name); const i = list.findIndex(n => nameKey(n) === k);
+      if (op.on && i < 0) list.push(String(op.name).trim().slice(0, 40));
+      if (!op.on && i >= 0) list.splice(i, 1);
+      if (!list.length) delete c[op.unit];
+      break;
+    }
+    case 'setPaid': {
+      if (!s.orders[op.orderId]) break;
+      const p = (s.paid[op.orderId] = s.paid[op.orderId] || {});
+      const k = nameKey(op.name); if (op.on) p[k] = true; else delete p[k];
+      break;
+    }
+  }
+  return s;
+}
+/*REDUCER-END*/
+
+/* KI-Scanner: Bon-Foto an ein lokales Vision-Modell (z. B. Qwen-VL) schicken. Wird vom Synafood-Server 1:1 wiederverwendet. */
+/*LLM-START*/
+const LLM_PROMPT = 'Du liest Kassenzettel und Belege von Essensbestellungen (Restaurant, Lieferdienst). Lies das Bild genau und antworte NUR mit einem JSON-Objekt, ohne Erklärung, in genau diesem Format:\n'
+  + '{"restaurant": "Name des Restaurants oder Lieferdienstes", "datum": "YYYY-MM-DD", "kunde": "Name des Kunden/Bestellers falls auf dem Beleg, sonst leer", '
+  + '"positionen": [{"name": "Gericht", "menge": 1, "preis": 12.83}], "gebuehren": [{"name": "Liefergebühr", "betrag": 2.50}], "gesamt": 46.34}\n'
+  + 'Regeln:\n'
+  + '- "preis" ist der Gesamtpreis der Zeile in Euro (Menge schon eingerechnet), genau wie er in der Preisspalte steht, als Zahl mit Punkt.\n'
+  + '- "menge" ist die Stückzahl am Zeilenanfang (z. B. "2x" oder "2"). Zahlen im Produktnamen (z. B. "28 PAN", "7x Cheesecake Balls") gehören zum Namen.\n'
+  + '- Extras und Beilagen einer Position mit eigenem Preis (z. B. "+ Extra Käse 1,00") zum Preis dieser Position addieren und nicht einzeln aufführen. Optionen ohne Preis weglassen.\n'
+  + '- Rabatt-Hinweise in Klammern, die im Zeilenpreis schon abgezogen sind, ignorieren.\n'
+  + '- Liefergebühr, Servicegebühr, Trinkgeld, Verpackung, Pfand gehören in "gebuehren". Rabatte und Gutscheine dort als negativer Betrag.\n'
+  + '- Zwischensumme, Netto, MwSt/Steuer, Gesamt, Zahlungsart (Bar, Karte, ApplePay, PayPal) sind KEINE Positionen.\n'
+  + '- "gesamt" ist der Endbetrag des Belegs. Unbekannte Felder leer lassen ("" bzw. null). Nichts erfinden.\n/no_think';
+function llmApiType(cfg){ return cfg.api && cfg.api !== 'auto' ? cfg.api : (/:11434\b|ollama/i.test(cfg.url || '') ? 'ollama' : 'openai'); }
+function llmBase(cfg){ return String(cfg.url || '').trim().replace(/\/+$/, '').replace(/\/(api\/chat|v1\/chat\/completions)$/, ''); }
+async function llmScan(cfg, images, signal){
+  const base = llmBase(cfg); const type = llmApiType(cfg);
+  const headers = {'content-type': 'application/json'}; if (cfg.key) headers.authorization = 'Bearer ' + cfg.key;
+  let res;
+  if (type === 'ollama') {
+    res = await fetch(base.replace(/\/v1$/, '') + '/api/chat', {method: 'POST', headers, signal, body: JSON.stringify({
+      model: cfg.model, stream: false, format: 'json', options: {temperature: 0.1, num_ctx: 16384},
+      messages: [{role: 'user', content: LLM_PROMPT, images: images.map(u => String(u).split(',')[1])}]})});
+    if (!res.ok) throw new Error('Modell antwortet mit ' + res.status + ': ' + (await res.text()).slice(0, 160));
+    const d = await res.json(); return (d.message && d.message.content) || '';
+  }
+  res = await fetch((/\/v1$/.test(base) ? base : base + '/v1') + '/chat/completions', {method: 'POST', headers, signal, body: JSON.stringify({
+    model: cfg.model, temperature: 0.1, max_tokens: 3000, stream: false,
+    messages: [{role: 'user', content: [{type: 'text', text: LLM_PROMPT}].concat(images.map(u => ({type: 'image_url', image_url: {url: u}})))}]})});
+  if (!res.ok) throw new Error('Modell antwortet mit ' + res.status + ': ' + (await res.text()).slice(0, 160));
+  const d = await res.json(); return (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || '';
+}
+async function llmTest(cfg, signal){
+  const base = llmBase(cfg); const type = llmApiType(cfg);
+  const headers = {}; if (cfg.key) headers.authorization = 'Bearer ' + cfg.key;
+  const res = await fetch(type === 'ollama' ? base.replace(/\/v1$/, '') + '/api/tags' : (/\/v1$/.test(base) ? base : base + '/v1') + '/models', {headers, signal});
+  if (!res.ok) throw new Error('Server antwortet mit ' + res.status);
+  const d = await res.json();
+  const names = type === 'ollama' ? (d.models || []).map(m => m.name || m.model) : (d.data || []).map(m => m.id);
+  return {type, names, found: names.some(n => n === cfg.model || String(n).split(':')[0] === String(cfg.model).split(':')[0] && !String(cfg.model).includes(':'))};
+}
+/*LLM-END*/
+
+
+/* ---------- Helfer ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = c => (Math.round(c) / 100).toLocaleString('de-DE', {style:'currency', currency:'EUR'});
+const fmtNum = c => (Math.round(c) / 100).toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const initial = n => (String(n || '?').trim()[0] || '?').toUpperCase();
+function toCents(s){
+  if (s == null) return 0;
+  s = String(s).trim().replace(/[€\s]|eur/gi, '');
+  if (!s) return 0;
+  const neg = /^-|-$/.test(s); s = s.replace(/-/g, '');
+  const last = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'));
+  let int = s, dec = '';
+  if (last >= 0 && s.length - last - 1 <= 2) { int = s.slice(0, last); dec = s.slice(last + 1); }
+  int = int.replace(/[.,]/g, '');
+  const v = Math.round(parseFloat((int || '0') + '.' + (dec || '0')) * 100);
+  return isNaN(v) ? 0 : (neg ? -v : v);
+}
+function fmtDate(d){
+  if (!d) return 'ohne Datum';
+  const dt = new Date(d + 'T12:00:00'); if (isNaN(dt)) return d;
+  return dt.toLocaleDateString('de-DE', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+}
+function today(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function paypalLink(info, cents){
+  const m = String(info || '').match(/paypal\.me\/([A-Za-z0-9._-]+)/i);
+  return m ? 'https://paypal.me/' + m[1] + '/' + (Math.max(0, cents) / 100).toFixed(2) + 'EUR' : null;
+}
+const LS = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+  del(k){ try { localStorage.removeItem(k); } catch {} }
+};
+const ICON = {
+  share:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  camera:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  plus:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  users:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M18 8v6M15 11h6"/></svg>',
+  arrow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  back:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+  trash:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
+
+/* ---------- Speicher: Server (gemeinsam) oder lokal (Testmodus) ---------- */
+const STATE_KEY = 'synafood-state-v1';
+const Store = {
+  mode: 'local', version: 0, state: {orders:{}, claims:{}, paid:{}},
+  async init(){
+    if (location.protocol.startsWith('http')) {
+      try {
+        const r = await fetch('api/state', {cache:'no-store'});
+        if (r.ok && (r.headers.get('content-type') || '').includes('json')) {
+          const j = await r.json(); this.mode = 'server'; this.state = j.state; this.version = j.version; this.poll();
+          try { const cf = await (await fetch('api/config', {cache:'no-store'})).json(); serverLlm = cf.llm || null; serverAdmin = !!cf.adminProtected; } catch {}
+          return;
+        }
+      } catch {}
+    }
+    this.mode = 'local';
+    const saved = LS.get(STATE_KEY, null);
+    if (saved) this.state = saved; else { this.state = demoState(); LS.set(STATE_KEY, this.state); }
+  },
+  async dispatch(op){
+    applyOp(this.state, op); render();
+    if (this.mode === 'local') { if (!LS.set(STATE_KEY, this.state)) toast('Speicher voll – Änderung konnte nicht gesichert werden.'); return 'ok'; }
+    const headers = {'content-type':'application/json'};
+    if (op.type === 'addUser' || op.type === 'removeUser') headers['x-admin-password'] = LS.get('synafood-admin', '') || '';
+    try {
+      const r = await fetch('api/op', {method:'POST', headers, body:JSON.stringify(op)});
+      if (r.status === 403) { await this.resync(); return 'denied'; }
+      if (!r.ok) throw new Error(r.status);
+      const j = await r.json(); this.state = j.state; this.version = j.version; render(); return 'ok';
+    } catch { toast('Keine Verbindung zum Server – bitte nochmal versuchen.'); await this.resync(); return 'error'; }
+  },
+  async resync(){
+    try { const r = await fetch('api/state', {cache:'no-store'}); const j = await r.json(); this.state = j.state; this.version = j.version; render(); refreshSheet(); } catch {}
+  },
+  poll(){
+    setInterval(async () => {
+      if (document.hidden) return;
+      try {
+        const r = await fetch('api/state?since=' + this.version, {cache:'no-store'});
+        if (r.status === 200) { const j = await r.json(); if (j.version !== this.version) { this.state = j.state; this.version = j.version; render(); refreshSheet(); } }
+      } catch {}
+    }, 3000);
+  },
+  async saveImgs(id, imgs){
+    if (!imgs || !imgs.length) return;
+    if (this.mode === 'local') { if (!LS.set('synafood-img-' + id, imgs)) toast('Bild zu groß für den lokalen Speicher – Positionen sind gespeichert.'); return; }
+    try { await fetch('api/img/' + id, {method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify(imgs)}); } catch {}
+  },
+  async getImgs(id){
+    if (this.mode === 'local') return LS.get('synafood-img-' + id, []);
+    try { const r = await fetch('api/img/' + id); return r.ok ? await r.json() : []; } catch { return []; }
+  },
+  delImgs(id){
+    if (this.mode === 'local') LS.del('synafood-img-' + id);
+    else fetch('api/img/' + id, {method:'DELETE'}).catch(() => {});
+  }
+};
+
+function demoState(){
+  const id = 'odemo';
+  const order = {
+    id, demo:true, restaurant:'Pizzeria Bella Napoli', date: today(), payer:'Lena', payInfo:'paypal.me/lena-beispiel',
+    feeMode:'prop', createdAt: Date.now(),
+    items:[
+      {id:'i1', name:'Pizza Margherita', qty:2, price:1700},
+      {id:'i2', name:'Pizza Diavola', qty:1, price:1050},
+      {id:'i3', name:'Penne Arrabbiata', qty:1, price:980},
+      {id:'i4', name:'Pommes groß', qty:1, price:490},
+      {id:'i5', name:'Cola 0,33 l', qty:2, price:500},
+      {id:'i6', name:'Tiramisu', qty:1, price:550}
+    ],
+    extras:[{id:'e1', name:'Liefergebühr', price:250}, {id:'e2', name:'Trinkgeld', price:300}],
+    receiptTotal: 5820
+  };
+  return {
+    users:[{id:'u1', name:'Lena'}, {id:'u2', name:'Max'}, {id:'u3', name:'Tim'}],
+    orders:{[id]:order},
+    claims:{[id]:{'i1:0':['Lena'], 'i1:1':['Max'], 'i2:0':['Tim'], 'i4:0':['Max','Tim'], 'i5:0':['Max'], 'i6:0':['Lena']}},
+    paid:{[id]:{tim:true}}
+  };
+}
+
+/* ---------- Rechnen ---------- */
+function computeOrder(o, claims = {}, paid = {}){
+  const people = new Map();
+  const person = n => { const k = nameKey(n); if (!people.has(k)) people.set(k, {key:k, name:String(n).trim(), itemsC:0, lines:[]}); return people.get(k); };
+  const units = []; let itemsSubtotal = 0, unitsClaimed = 0;
+  for (const it of (o.items || [])) {
+    const q = Math.max(1, Math.min(50, it.qty | 0)); const up = (it.price || 0) / q; itemsSubtotal += (it.price || 0);
+    for (let k = 0; k < q; k++) {
+      const unit = it.id + ':' + k; const names = (claims[unit] || []).filter(n => String(n).trim());
+      units.push({unit, item:it, k, q, price:up, names});
+      if (names.length) {
+        unitsClaimed++;
+        for (const n of names) { const p = person(n); p.itemsC += up / names.length; p.lines.push(names.length > 1 ? it.name + ' (÷' + names.length + ')' : it.name); }
+      }
+    }
+  }
+  const extrasTotal = (o.extras || []).reduce((a, e) => a + (e.price || 0), 0);
+  const list = [...people.values()];
+  for (const p of list) {
+    p.extrasC = o.feeMode === 'equal' ? (list.length ? extrasTotal / list.length : 0) : (itemsSubtotal ? extrasTotal * p.itemsC / itemsSubtotal : 0);
+    p.total = Math.round(p.itemsC + p.extrasC);
+    p.isPayer = p.key === nameKey(o.payer);
+    p.paid = !!paid[p.key];
+  }
+  list.sort((a, b) => (b.isPayer - a.isPayer) || a.name.localeCompare(b.name, 'de'));
+  const grand = itemsSubtotal + extrasTotal;
+  const assigned = list.reduce((a, p) => a + p.total, 0);
+  const owedOpen = list.filter(p => !p.isPayer && !p.paid).reduce((a, p) => a + p.total, 0);
+  return {units, people:list, itemsSubtotal, extrasTotal, grand, unitsTotal:units.length, unitsClaimed, unclaimed: unitsClaimed === units.length ? 0 : Math.max(0, grand - assigned), owedOpen};
+}
+let serverAdmin = false;
+function users(){ return (Store.state.users || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'de')); }
+function hasUsers(){ return (Store.state.users || []).length > 0; }
+function pickNames(){ return hasUsers() ? users().map(u => u.name) : knownNames(); }
+function meOk(){ return !!me && (!hasUsers() || Store.state.users.some(u => nameKey(u.name) === nameKey(me))); }
+function matchPerson(n){
+  if (!n) return '';
+  const k = nameKey(n), names = pickNames();
+  return names.find(x => nameKey(x) === k) || names.find(x => nameKey(x).split(' ')[0] === k.split(' ')[0]) || (hasUsers() ? '' : n);
+}
+function knownNames(){
+  const m = new Map(); const add = n => { n = String(n || '').trim(); if (n && !m.has(nameKey(n))) m.set(nameKey(n), n); };
+  add(me);
+  for (const o of Object.values(Store.state.orders)) add(o.payer);
+  for (const c of Object.values(Store.state.claims)) for (const l of Object.values(c)) l.forEach(add);
+  return [...m.values()].sort((a, b) => a.localeCompare(b, 'de'));
+}
+
+/* ---------- Belegtext auslesen ---------- */
+const RE_STOP = /(netto|brutto|gesamt|ges\p{L}{1,4}t\b|summe|total|zu zahlen|zahlbetrag|endbetrag|m\.?w\.?st|steuer|\bust\b)/iu;
+const RE_TOTAL = /(ges\p{L}{1,4}t\b|summe|total|zu zahlen|zahlbetrag|endbetrag)/iu;
+const RE_NOTOTAL = /(zwischen|netto|mwst|ust|steuer|brutto)/i;
+const RE_PAY = /([pbr]ay\b|a\p{L}{1,3}le\p{L}?ay|z\p{L}{1,2}lung|a[pu]p\s?[l1]e\s?[pb]ay|apple|google ?pay|paypal|kartenzahlung|\bkarte\b|\bec\b|girocard|visa|mastercard|amex|kreditkarte|\bbar\b|gegeben|rückgeld|wechselgeld|bezahlt|zahlung|\btse\b|transaktion|saldo)/iu;
+const RE_INFO = /(\(\s*r\w{2,4}tt|r[ae]h?batt\s*[:;]|fixed|f\w{1,3}ed\s*pri|pri[cgs]e\b|preis vorher|ersparnis|sie sparen|\bstatt\b)/i;
+const RE_HEADER = /(produkt|artikel|bezeichnung|menge|beschreibung|position).{0,40}(preis|betrag|eur|summe)/i;
+const RE_EXTRA = /(liefer|versand|service|trinkgeld|\btip\b|rabatt|gutschein|coupon|discount|pfand|verpackung|mindestbestell|bearbeitungsgeb)/i;
+const RE_DISCOUNT = /(rabatt|gutschein|coupon|discount|nachlass)/i;
+const RE_MOD = /^(\+|extra\b|mit\b|ohne\b|zusatz|dazu\b|add\b)/i;
+const RE_DOMINO = /[a-z]?[o0][mn][il1][mn][o0]s\b/i;
+const RE_BRAND = /(domino|pizza|pizzeria|ristorante|trattoria|osteria|restaurant|bistro|imbiss|grill|burger|sushi|döner|doner|kebab|kebap|thai|asia|wok|curry|mcdonald|kfc|subway|vapiano|hans im gl|five guys|nordsee|bäckerei|cafe|café|coffee|bowl|poke|ramen|noodle|taco|india|vietnam|falafel|steakhouse|kitchen|food)/i;
+const RE_NOTNAME = /(bezahlt|beleg|rechnung|quittung|kassenbon|service|kunde|liefer|telefon|\btel\b|fax|adresse|datum|uhrzeit|bestell|\bbon\b|www|@|str\.|straße|strasse|\b\d{5}\b|ust-?id|steuer|produkt|preis|melde|suchen|danke)/i;
+const letterCount = s => (String(s).match(/\p{L}/gu) || []).length;
+
+function findPrice(line, loose){
+  let m = line.match(/(-?)(\d{1,4})\s?[,.]\s?(\d{2})(?=[\s€8®4\p{L}|)\]}'’"*.:;,]{0,6}$)/u);
+  if (m) { const v = (+m[2]) * 100 + (+m[3]); return {cents: m[1] ? -v : v, index: m.index}; }
+  m = line.match(/(\d{1,2})(\d{2})\s?[€8]\s?[A-Za-z]{0,2}$/);
+  if (m && /\p{L}{3}/u.test(line.slice(0, m.index))) return {cents: (+m[1]) * 100 + (+m[2]), index: m.index};
+  if (loose) { m = line.match(/\s(\d)(\d{2})\s*[A-Za-z]?$/); if (m && /\p{L}{3}/u.test(line.slice(0, m.index))) return {cents: (+m[1]) * 100 + (+m[2]), index: m.index}; }
+  return null;
+}
+function cleanName(s){
+  s = s.replace(/[|_~`^°\[\]{}»«]/g, ' ').replace(/\s+/g, ' ').trim();
+  const toks = s.split(' ');
+  const junk = t => /^[^\p{L}\p{N}]+$/u.test(t) || /^[a-zäöü]{1,2}[^\p{L}\p{N}]*$/u.test(t) || /^[#*'"„“‚,.]+\S{0,2}$/u.test(t) || /^\d[^\p{L}\p{N}\s]+$/u.test(t) || /^\p{L}{1,3}[,.;:!]$/u.test(t);
+  const junk2 = (t, n) => /^[\d.,]*[.,][\d.,]*$/.test(t) || (/^[a-zäöü]{3}$/.test(t) && /^\d/.test(n || ''));
+  while (toks.length > 1 && (junk(toks[0]) || junk2(toks[0], toks[1]))) toks.shift();
+  return toks.join(' ').replace(/^(?:\S{1,4}\s+){1,2}(?=(?:[1-9]|1\d|I)\s*[.,]?\s+(?=.*\p{L}{3}))/u, '').replace(/[\s.:,;|'"„“*\-]+$/, '').replace(/\s[a-km-z|]$/, '').replace(/[\s.:,;|'"„“*\-]+$/, '').trim();
+}
+function splitQty(name){
+  // "1 28 PAN Crazy Dog" -> 1 / "28 PAN Crazy Dog";  "2 x Pizza" -> 2 / "Pizza";  "1. Lava Cake" -> 1 / "Lava Cake"
+  let m = name.match(/^([1-9]|1\d|20|[Il|])\s*[.,]?\s+(\S.*)$/);
+  if (m) {
+    let q = /^[Il|]$/.test(m[1]) ? 1 : +m[1];
+    if (q > 1 && /^\d/.test(m[2])) q = 1;
+    return {qty: q, name: m[2]};
+  }
+  m = name.match(/^(\d{1,2})\s*(?:x|×|\*|stk\.?|st\.)\s*(\S.*)$/i);
+  if (m && +m[1] >= 1 && +m[1] <= 20) return {qty: +m[1], name: m[2]};
+  return {qty: 1, name};
+}
+function parseReceipt(text){
+  const lines = String(text || '').split(/\r?\n/).map(l => l.replace(/[−–]/g, '-').replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const items = [], extras = []; let total = null, payTotal = null, date = '', payer = '', pendingName = '', stopped = false, started = false, firstItem = -1, stopAt = -1;
+  const totals = [];
+  lines.forEach((line, li) => {
+    if (stopped && stopAt < 0) stopAt = li;
+    if (!date) {
+      const d = line.match(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})\b/);
+      if (d) { let y = +d[3]; if (y < 100) y += 2000; const mo = +d[2], da = +d[1]; const cy = new Date().getFullYear(); if (mo >= 1 && mo <= 12 && da >= 1 && da <= 31 && y >= cy - 2 && y <= cy + 1) date = y + '-' + String(mo).padStart(2, '0') + '-' + String(da).padStart(2, '0'); }
+    }
+    if (!payer) { const k = line.match(/kunde\s*[:;.]?\s*([\p{L}][\p{L}'-]{1,30})/iu); if (k) payer = k[1][0].toUpperCase() + k[1].slice(1).toLowerCase(); }
+    if (!started && RE_HEADER.test(line)) { started = true; items.length = 0; pendingName = ''; return; }
+    if (RE_INFO.test(line)) return;
+    const pr = findPrice(line, started && !stopped && !RE_NOTNAME.test(line));
+    if (!pr) {
+      if (RE_STOP.test(line) || RE_PAY.test(line)) { if (RE_STOP.test(line)) stopped = true; pendingName = ''; }
+      else if (!stopped && letterCount(line) >= 4 && !RE_NOTNAME.test(line) && line.length < 60) pendingName = line;
+      return;
+    }
+    const raw = line.slice(0, pr.index);
+    if (RE_TOTAL.test(raw) && !RE_NOTOTAL.test(raw)) { total = Math.abs(pr.cents); totals.push(total); stopped = true; return; }
+    if (RE_STOP.test(raw)) { stopped = true; return; }
+    if (RE_PAY.test(raw)) { if (pr.cents > 0) { payTotal = pr.cents; totals.push(pr.cents); } return; }
+    if (/%/.test(raw) && letterCount(raw) < 8) return;
+    let name = cleanName(raw);
+    if (RE_EXTRA.test(name)) { let c = pr.cents; if (RE_DISCOUNT.test(name) && c > 0) c = -c; if (c) extras.push({id:uid('e'), name: name.replace(/^[^\p{L}]+/u, ''), price:c}); pendingName = ''; return; }
+    if (stopped || pr.cents <= 0) return;
+    if (RE_MOD.test(name) && items.length) { const prev = items[items.length - 1]; prev.price += pr.cents; prev.name += ' + ' + name.replace(/^\+\s*/, ''); return; }
+    let q = splitQty(name);
+    q.name = cleanName(q.name);
+    if (letterCount(q.name) < 3) { if (!pendingName) return; q = splitQty(cleanName(pendingName)); }
+    pendingName = '';
+    const unit = q.name.match(/^(.*?)\s*\d{1,2}\s*[x×*]\s*\d{1,4}[.,]\d{2}\s*$/i);
+    if (unit && letterCount(unit[1]) >= 3) q.name = unit[1];
+    if (firstItem < 0) firstItem = li;
+    items.push({id:uid('i'), name:q.name.slice(0, 80), qty:q.qty, price:pr.cents});
+  });
+  if (!total && payTotal) total = payTotal;
+  // Zeilen, die eigentlich Summen sind (z. B. verstümmeltes "Netto 43,31"), wieder entfernen
+  for (let i = items.length - 1; i >= 0 && items.length > 2; i--) {
+    const others = items.reduce((a, it, j) => j === i ? a : a + it.price, 0);
+    if (items[i].price >= others * 0.85) items.splice(i, 1);
+  }
+  let restaurant = '';
+  const outside = lines.filter((l, i) => (firstItem < 0 || i < firstItem) || (stopAt >= 0 && i > stopAt));
+  if (outside.some(l => RE_DOMINO.test(l) || /domino/i.test(l))) return {restaurant:"Domino's", date, payer, items, extras, total, totals};
+  const brand = outside.find(l => RE_BRAND.test(l) && letterCount(l) >= 5 && !RE_INFO.test(l) && !findPrice(l) && !/(str\.|straße|strasse|\b\d{5}\b|kunde|telefon)/i.test(l));
+  const top = lines.slice(0, 6).find(l => !/(lieferando|wolt|uber ?eats|just ?eat|takeaway|bestellbestätigung|deine bestellung$)/i.test(l) && letterCount(l) >= 4 && letterCount(l) / l.replace(/\s/g, '').length > 0.75 && !RE_NOTNAME.test(l) && !RE_PAY.test(l));
+  const pick = (brand || top || '').replace(/^.*?\bbestell\p{L}*\b.*?\bbei\s+/iu, '');
+  restaurant = pick.replace(/[^\p{L}\p{N} &'.-]/gu, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(t => letterCount(t) >= 2 || /^&$/.test(t)).join(' ').slice(0, 60);
+  return {restaurant, date, payer, items, extras, total, totals};
+}
+function scoreParse(p){
+  const sum = p.items.reduce((a, i) => a + i.price, 0) + p.extras.reduce((a, e) => a + e.price, 0);
+  return (p.total ? (sum === p.total ? 1e6 : -Math.abs(sum - p.total)) : 0) + p.items.length;
+}
+function nameTokens(n){ return new Set((String(n).toLowerCase().match(/\p{L}{4,}/gu) || [])); }
+function sameItem(a, b){
+  const A = nameTokens(a), B = nameTokens(b); if (!A.size || !B.size) return false;
+  const near = (x, y) => { if (x === y) return true; if (Math.abs(x.length - y.length) > 2) return false;
+    const d = Array.from({length: y.length + 1}, (_, j) => j);
+    for (let i = 1; i <= x.length; i++) { let prev = d[0]; d[0] = i; for (let j = 1; j <= y.length; j++) { const tmp = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (x[i - 1] === y[j - 1] ? 0 : 1)); prev = tmp; } }
+    return d[y.length] <= Math.max(1, Math.floor(Math.min(x.length, y.length) / 3)); };
+  let hit = 0; for (const t of A) if ([...B].some(u => near(t, u))) hit++;
+  return hit / Math.min(A.size, B.size) >= 0.5;
+}
+function mergeParses(parses){
+  const sumOf = p => p.items.reduce((a, i) => a + i.price, 0) + p.extras.reduce((a, e) => a + e.price, 0);
+  const cands = parses.flatMap(p => p.totals || (p.total ? [p.total] : []));
+  const ref = [...parses].sort((a, b) => b.items.length - a.items.length)[0];
+  const refSum = ref ? sumOf(ref) : 0;
+  const freq = v => cands.filter(c => c === v).length;
+  const total = cands.length ? cands.slice().sort((a, b) => (freq(b) - freq(a)) || (Math.abs(a - refSum) - Math.abs(b - refSum)))[0] : null;
+  const score = p => p.items.length * 10 - (total ? Math.abs(sumOf(p) - total) / 100 : 0);
+  const sorted = [...parses].sort((a, b) => score(b) - score(a));
+  const base = {...sorted[0], items: sorted[0].items.map(i => ({...i})), extras: sorted[0].extras.map(e => ({...e})), total};
+  for (const other of sorted.slice(1)) {
+    for (const it of other.items) {
+      if (base.items.some(b => sameItem(b.name, it.name))) continue;
+      if (!total || Math.abs(sumOf(base) + it.price - total) < Math.abs(sumOf(base) - total)) base.items.push({...it});
+    }
+    for (const it of other.items) {
+      const m = base.items.find(b => sameItem(b.name, it.name));
+      if (m && m.price !== it.price && total) { const cur = Math.abs(sumOf(base) - total); const alt = Math.abs(sumOf(base) - m.price + it.price - total); if (alt < cur) { m.price = it.price; m.qty = it.qty; } }
+    }
+    for (const e of other.extras) if (!base.extras.some(x => sameItem(x.name, e.name))) base.extras.push({...e});
+    if (!base.restaurant && other.restaurant) base.restaurant = other.restaurant;
+    if (!base.payer && other.payer) base.payer = other.payer;
+    if (!base.date && other.date) base.date = other.date;
+  }
+  // Falls genau eine Zeile zu viel ist (z. B. verstümmelte Netto-Zeile), diese entfernen
+  if (total && sumOf(base) !== total) {
+    const i = base.items.findIndex(it => sumOf(base) - it.price === total);
+    if (i >= 0) base.items.splice(i, 1);
+  }
+  return base;
+}
+
+/* ---------- Bild vorbereiten & Texterkennung (Tesseract, läuft im Browser) ---------- */
+function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('load')); document.head.appendChild(s); }); }
+async function loadImage(file){
+  if (window.createImageBitmap) { try { return await createImageBitmap(file, {imageOrientation:'from-image'}); } catch {} }
+  return await new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = rej; img.src = URL.createObjectURL(file); });
+}
+function grayOf(img, sx, sy, sw, sh, w, h){
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d', {willReadFrequently:true}); x.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data; const g = new Uint8ClampedArray(w * h);
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) g[j] = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+  return {g, c, x};
+}
+function integral(g, w, h){
+  const W = w + 1, ii = new Uint32Array(W * (h + 1));
+  for (let y = 0; y < h; y++) { let row = 0; for (let x = 0; x < w; x++) { row += g[y * w + x]; ii[(y + 1) * W + x + 1] = ii[y * W + x + 1] + row; } }
+  return ii;
+}
+function boxSum(ii, w, x0, y0, x1, y1){ const W = w + 1; return ii[y1 * W + x1] - ii[y0 * W + x1] - ii[y1 * W + x0] + ii[y0 * W + x0]; }
+// Findet den hellen Bon im Foto (unscharf + Otsu-Schwelle), damit Tisch und Finger wegfallen.
+function detectPaper(img){
+  const W = 300, H = Math.max(1, Math.round(img.height * W / img.width));
+  const {g} = grayOf(img, 0, 0, img.width, img.height, W, H); const ii = integral(g, W, H); const r = 4;
+  const b = new Uint8ClampedArray(W * H); const hist = new Uint32Array(256);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const x0 = Math.max(0, x - r), x1 = Math.min(W, x + r + 1), y0 = Math.max(0, y - r), y1 = Math.min(H, y + r + 1);
+    const v = boxSum(ii, W, x0, y0, x1, y1) / ((x1 - x0) * (y1 - y0)); b[y * W + x] = v; hist[b[y * W + x]]++;
+  }
+  let sumAll = 0; for (let t = 0; t < 256; t++) sumAll += t * hist[t];
+  let wb = 0, sb = 0, best = 0, thr = 128; const tot = W * H;
+  for (let t = 0; t < 256; t++) { wb += hist[t]; if (!wb) continue; const wf = tot - wb; if (!wf) break; sb += t * hist[t]; const d = sb / wb - (sumAll - sb) / wf; const v = wb * wf * d * d; if (v > best) { best = v; thr = t; } }
+  const cols = new Float32Array(W), rows = new Float32Array(H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (b[y * W + x] > thr) { cols[x]++; rows[y]++; }
+  let x0 = -1, x1 = -1, y0 = -1, y1 = -1;
+  for (let x = 0; x < W; x++) if (cols[x] / H > 0.5) { if (x0 < 0) x0 = x; x1 = x; }
+  for (let y = 0; y < H; y++) if (rows[y] / W > 0.2) { if (y0 < 0) y0 = y; y1 = y; }
+  if (x0 < 0 || y0 < 0 || x1 - x0 < W * 0.15 || y1 - y0 < H * 0.15) return {x0:0, y0:0, x1:1, y1:1};
+  const px = 0.012;
+  return {x0:Math.max(0, x0 / W - px), y0:Math.max(0, y0 / H - px), x1:Math.min(1, (x1 + 1) / W + px), y1:Math.min(1, (y1 + 1) / H + px)};
+}
+// Schneidet zu, vergrößert und macht das Bild nach lokaler Helligkeit schwarz-weiß (gegen Schatten und Thermopapier-Grau).
+function prepCanvas(img, box){
+  const sx = box.x0 * img.width, sy = box.y0 * img.height, sw = Math.max(1, (box.x1 - box.x0) * img.width), sh = Math.max(1, (box.y1 - box.y0) * img.height);
+  let w = 1600, h = Math.round(sh * w / sw);
+  if (h > 5000) { h = 5000; w = Math.max(400, Math.round(sw * h / sh)); }
+  const {g, c, x} = grayOf(img, sx, sy, sw, sh, w, h); const ii = integral(g, w, h);
+  const r = Math.max(8, (w / 44) | 0), T = 0.15; const out = x.createImageData(w, h); const o = out.data;
+  for (let yy = 0; yy < h; yy++) {
+    const y0 = Math.max(0, yy - r), y1 = Math.min(h, yy + r + 1);
+    for (let xx = 0; xx < w; xx++) {
+      const x0 = Math.max(0, xx - r), x1 = Math.min(w, xx + r + 1);
+      const cnt = (x1 - x0) * (y1 - y0); const v = g[yy * w + xx] * cnt <= boxSum(ii, w, x0, y0, x1, y1) * (1 - T) ? 0 : 255;
+      const k = (yy * w + xx) * 4; o[k] = o[k + 1] = o[k + 2] = v; o[k + 3] = 255;
+    }
+  }
+  x.putImageData(out, 0, 0); return c;
+}
+function cropThumb(img, box){
+  const sx = box.x0 * img.width, sy = box.y0 * img.height, sw = (box.x1 - box.x0) * img.width, sh = (box.y1 - box.y0) * img.height;
+  const s = Math.min(1, 1400 / Math.max(sw, sh)); const c = document.createElement('canvas'); c.width = Math.round(sw * s); c.height = Math.round(sh * s);
+  c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.72);
+}
+function previewUrl(img){
+  const s = Math.min(1, 1100 / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.8);
+}
+// Zwei Durchgänge mit unterschiedlicher Seitenaufteilung; danach werden die Ergebnisse zusammengeführt.
+async function runOcr(prepared, onProgress){
+  if (!window.Tesseract) { onProgress('Texterkennung wird geladen …', 0.02); await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'); }
+  const passes = ['6', '4']; let step = 0; const steps = passes.length * prepared.length;
+  const worker = await Tesseract.createWorker('deu', 1, {
+    logger: m => {
+      if (m.status === 'recognizing text') onProgress('Bon wird gelesen (Durchgang ' + (Math.floor(step / prepared.length) + 1) + ' von ' + passes.length + ') …', (step + m.progress) / steps);
+      else if (/loading|initializ/.test(m.status)) onProgress(/traineddata/.test(m.status) ? 'Sprachdaten werden geladen …' : 'Texterkennung wird vorbereitet …', 0.03);
+    }
+  });
+  const canvases = prepared.map(p => prepCanvas(p.img, p.box));
+  const texts = [];
+  for (const psm of passes) {
+    await worker.setParameters({tessedit_pageseg_mode: psm, preserve_interword_spaces: '1'});
+    let t = '';
+    for (const c of canvases) { const {data} = await worker.recognize(c); t += data.text + '\n'; step++; }
+    texts.push(t);
+  }
+  await worker.terminate();
+  return texts;
+}
+function openCrop(img, box, i, n){
+  return new Promise(resolve => {
+    openSheet(n > 1 ? 'Bon zuschneiden (' + (i + 1) + '/' + n + ')' : 'Bon zuschneiden',
+      '<p class="hint" style="margin:0">Zieh die Ecken genau an den Kassenzettel. Finger, Tisch und Schatten am Rand verschlechtern die Erkennung.</p>'
+      + '<div class="crop-wrap"><div class="crop" id="crop"><img id="cropImg" alt="Foto des Kassenzettels" src="' + previewUrl(img) + '">' + '<div class="crop-shade"></div>'.repeat(4) + '<div class="crop-box" id="cropBox">'
+      + ['tl', 'tr', 'bl', 'br'].map(h => '<span class="crop-h ' + h + '" data-h="' + h + '"></span>').join('') + '</div></div></div>'
+      + '<div class="sheet-foot"><button class="btn" type="button" data-action="crop-full">Ganzes Bild</button><button class="btn primary" type="button" data-action="crop-ok">Text erkennen</button></div>',
+      {kind:'crop', box:{...box}, resolve});
+    const el = $('#cropBox'), wrap = $('#crop');
+    const draw = () => { const b = sheetState.box; el.style.left = b.x0 * 100 + '%'; el.style.top = b.y0 * 100 + '%'; el.style.width = (b.x1 - b.x0) * 100 + '%'; el.style.height = (b.y1 - b.y0) * 100 + '%';
+      const sh = wrap.querySelectorAll('.crop-shade'), P = v => v * 100 + '%';
+      [[0, 0, 1, b.y0], [0, b.y1, 1, 1], [0, b.y0, b.x0, b.y1], [b.x1, b.y0, 1, b.y1]].forEach(([a, c, d, e], k) => Object.assign(sh[k].style, {left:P(a), top:P(c), width:P(d - a), height:P(e - c)})); };
+    draw();
+    let drag = null;
+    wrap.addEventListener('pointerdown', e => { const h = e.target.dataset.h; if (!h) return; drag = h; e.target.setPointerCapture(e.pointerId); e.preventDefault(); });
+    wrap.addEventListener('pointermove', e => {
+      if (!drag || !sheetState || sheetState.kind !== 'crop') return;
+      const r = wrap.getBoundingClientRect(); const fx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), fy = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+      const b = sheetState.box, min = 0.08;
+      if (drag[1] === 'l') b.x0 = Math.min(fx, b.x1 - min); else b.x1 = Math.max(fx, b.x0 + min);
+      if (drag[0] === 't') b.y0 = Math.min(fy, b.y1 - min); else b.y1 = Math.max(fy, b.y0 + min);
+      draw();
+    });
+    const end = () => { drag = null; };
+    wrap.addEventListener('pointerup', end); wrap.addEventListener('pointercancel', end);
+  });
+}
+function finishCrop(full){
+  if (!sheetState || sheetState.kind !== 'crop') return;
+  const r = sheetState.resolve; sheetState.resolve = null;
+  r(full ? {x0:0, y0:0, x1:1, y1:1} : {...sheetState.box});
+}
+
+/* ---------- Zustand der Oberfläche ---------- */
+let me = LS.get('synafood-me', '');
+let showPaid = false;
+let sheetState = null; // {kind, ...}
+let draft = null;
+let installEvt = null;
+
+function route(){
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (h.startsWith('o-')) return {view:'order', id:h.slice(2)};
+  if (h === 'abrechnung') return {view:'debts'};
+  return {view:'list'};
+}
+
+/* ---------- Ansichten ---------- */
+function render(){
+  if (me && !meOk()) me = '';
+  const r = route(); let html = '';
+  if (r.view === 'order') { const o = Store.state.orders[r.id]; html = o ? viewOrder(o) : '<p class="empty">Diese Bestellung gibt es nicht mehr.<br><a href="#bestellungen">Zur Übersicht</a></p>'; }
+  else html = viewTabs(r.view) + (r.view === 'debts' ? viewDebts() : viewList());
+  $('#app').innerHTML = html;
+  renderBar(r); renderMe();
+  $('#banner').innerHTML = Store.mode === 'local' ? '<p class="banner">Testmodus: Alles wird nur auf diesem Gerät gespeichert. Damit alle gemeinsam anhaken können, den Synafood-Server hosten.</p>' : '';
+}
+function renderMe(){
+  $('#mePill').innerHTML = me ? 'GAST: <b>' + esc(me.toUpperCase()) + '</b> · <span class="u">ändern</span>' : '<span class="u">Wer bist du? Namen ' + (hasUsers() ? 'wählen' : 'eingeben') + '</span>';
+  $('#mePill').setAttribute('aria-label', me ? 'Name ändern, aktuell ' + me : 'Namen festlegen');
+}
+function viewTabs(v){
+  return '<nav class="tabs" aria-label="Bereiche"><a href="#bestellungen"' + (v === 'list' ? ' aria-current="page"' : '') + '>Bestellungen</a><a href="#abrechnung"' + (v === 'debts' ? ' aria-current="page"' : '') + '>Wer schuldet wem</a></nav>';
+}
+function sortedOrders(){ return Object.values(Store.state.orders).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0)); }
+function viewList(){
+  const orders = sortedOrders(); const mk = nameKey(me);
+  let h = '<div class="actions-row counter-btns"><button class="btn primary" type="button" data-action="scan">' + ICON.camera + 'Bon scannen / PDF</button><button class="btn" type="button" data-action="manual">' + ICON.plus + 'Manuell anlegen</button></div>';
+  if (!orders.length) return h + '<p class="empty counter-text">Noch keine Bestellung.<br>Scanne den ersten Kassenzettel, dann können alle ihr Gericht anhaken.</p>' + llmStatusLine() + installHint();
+  h += '<div class="stack">';
+  for (const o of orders) {
+    const c = computeOrder(o, Store.state.claims[o.id], Store.state.paid[o.id]);
+    const mine = c.people.find(p => p.key === mk);
+    let pill = '';
+    if (mk && nameKey(o.payer) === mk) pill = c.owedOpen > 0 ? '<span class="pill acc">Du bekommst ' + fmt(c.owedOpen) + '</span>' : '<span class="pill ok">Alles bezahlt</span>';
+    else if (mine) pill = mine.paid ? '<span class="pill ok">Bezahlt</span>' : '<span class="pill warn">Du zahlst ' + fmt(mine.total) + '</span>';
+    const pct = c.unitsTotal ? Math.round(c.unitsClaimed / c.unitsTotal * 100) : 0;
+    h += '<a class="order-card paper" href="#o-' + esc(o.id) + '"><div class="oc-top"><span class="oc-name">' + esc(o.restaurant || 'Bestellung') + '</span>' + (o.demo ? '<span class="badge">Beispiel</span>' : '') + '<span class="mono"><b>' + fmt(c.grand) + '</b></span></div>'
+      + '<div class="oc-meta">' + esc(fmtDate(o.date)) + ' · bestellt von <b>' + esc(o.payer || '?') + '</b></div>'
+      + '<div class="progress" aria-hidden="true"><span style="width:' + pct + '%"></span></div>'
+      + '<div class="oc-foot"><span>' + c.unitsClaimed + ' von ' + c.unitsTotal + ' Gerichten angehakt</span>' + pill + '</div></a>';
+  }
+  return h + '</div>' + llmStatusLine() + installHint();
+}
+function installHint(){
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (standalone) return '';
+  if (installEvt) return '<p class="footer-hint"><button class="btn small" type="button" data-action="install">Als App installieren</button></p>';
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return '<p class="footer-hint">' + (ios ? 'Als App nutzen: in Safari auf Teilen tippen, dann „Zum Home-Bildschirm“.' : 'Als App nutzen: im Browser-Menü „Zum Startbildschirm hinzufügen“ wählen.') + '</p>';
+}
+
+function viewOrder(o){
+  const c = computeOrder(o, Store.state.claims[o.id], Store.state.paid[o.id]);
+  const mk = nameKey(me);
+  let h = '<a class="back" href="#bestellungen">' + ICON.back + 'Alle Bons</a><article class="paper">';
+  h += '<header class="r-head"><h1>' + esc(o.restaurant || 'Bestellung') + '</h1>' + (o.demo ? '<div><span class="badge">Beispiel</span></div>' : '')
+    + '<div class="r-sub">' + esc(fmtDate(o.date)) + '<br>BON-NR. ' + esc(String(o.id).slice(-6).toUpperCase()) + ' · ' + c.unitsTotal + (c.unitsTotal === 1 ? ' ARTIKEL' : ' ARTIKEL') + '</div></header>';
+  h += '<div class="payer"><div class="eyebrow">Bestellt &amp; bezahlt von</div><div class="payer-name">' + esc(o.payer || '?') + '</div>'
+    + (o.payInfo ? '<div class="payinfo"><span class="mono">' + esc(o.payInfo) + '</span><button class="btn small" type="button" data-action="copy" data-text="' + esc(o.payInfo) + '">Kopieren</button></div>' : '') + '</div>';
+  h += '<div class="share-row"><button class="btn small" type="button" data-action="share" data-id="' + esc(o.id) + '">' + ICON.share + 'Link teilen</button></div>';
+  h += '<div class="rule"></div><div class="r-cols"><span>ARTIKEL</span><span>EUR</span></div><p class="hint" style="margin:0 0 4px">* Hake an, was du hattest. Geteiltes von mehreren anhaken.</p><ul class="receipt">';
+  for (const u of c.units) {
+    const mine = u.names.some(n => nameKey(n) === mk);
+    const chips = u.names.length ? u.names.map(n => '<span class="chip' + (nameKey(n) === mk ? ' me' : '') + '">' + esc(n) + '</span>').join('') : '<span class="chip open">noch offen</span>';
+    const shared = u.names.length > 1 ? '<small>÷' + u.names.length + ' = ' + fmtNum(u.price / u.names.length) + '</small>' : '';
+    h += '<li class="unit' + (mine ? ' is-mine' : '') + '"><label class="check"><input type="checkbox" data-claim="' + esc(u.unit) + '"' + (mine ? ' checked' : '') + ' aria-label="' + esc(u.item.name) + ' gehört mir"><span class="box">' + ICON.check + '</span>'
+      + '<span class="u-main"><span class="u-name">' + esc(u.item.name) + (u.q > 1 ? '<span class="u-k">' + (u.k + 1) + '/' + u.q + '</span>' : '') + '</span><span class="u-who">' + chips + '</span></span>'
+      + '<span class="u-price">' + fmtNum(u.price) + shared + '</span></label>'
+      + '<button class="icon-btn" type="button" data-action="assign" data-unit="' + esc(u.unit) + '" aria-label="Anderen Personen zuordnen" title="Anderen zuordnen">' + ICON.users + '</button></li>';
+  }
+  if (!c.units.length) h += '<li class="empty">Keine Positionen. Über „Bearbeiten“ hinzufügen.</li>';
+  h += '</ul>';
+  if ((o.extras || []).length) {
+    h += '<div class="rule"></div><ul class="extras">' + o.extras.map(e => '<li><span>' + esc(e.name.toUpperCase()) + '</span><span>' + fmtNum(e.price) + '</span></li>').join('')
+      + '<li><span class="hint">' + (o.feeMode === 'equal' ? '* gleichmäßig auf alle verteilt' : '* anteilig nach Bestellwert verteilt') + '</span></li></ul>';
+  }
+  h += '<div class="rule double"></div><div class="r-total"><span>SUMME EUR</span><span>' + fmtNum(c.grand) + '</span></div>'
+    + '<div class="r-lines"><div><span>ANGEHAKT</span><span>' + c.unitsClaimed + ' / ' + c.unitsTotal + '</span></div>'
+    + (c.unclaimed ? '<div class="open"><span>NOCH NIEMANDEM</span><span>' + fmtNum(c.unclaimed) + '</span></div>' : '') + '</div>';
+  h += '<div class="rule"></div><h2 class="r-sec">Wer zahlt was</h2>';
+  if (!c.people.length) h += '<p class="hint" style="margin:0;text-align:center">Noch hat niemand etwas angehakt.</p>';
+  else {
+    h += '<table class="settle"><thead><tr><th>Person</th><th>EUR</th><th>Status</th></tr></thead><tbody>';
+    for (const p of c.people) {
+      const status = p.isPayer ? '<span class="hint">BESTELLER</span>' : '<button class="status-btn ' + (p.paid ? 'paid' : 'open') + '" type="button" data-action="paid" data-name="' + esc(p.name) + '" data-on="' + (p.paid ? '0' : '1') + '">' + (p.paid ? 'bezahlt' : 'offen') + '</button>';
+      h += '<tr class="' + (p.key === mk ? 'is-me' : '') + '"><td><div class="who">' + esc(p.name) + '</div><div class="what">' + esc(p.lines.join(', ')) + (p.extrasC ? ' + ' + fmtNum(p.extrasC) + ' Gebühren' : '') + '</div></td><td class="amt">' + fmtNum(p.total) + '</td><td>' + status + '</td></tr>';
+    }
+    if (c.unclaimed) h += '<tr><td><div class="who" style="background:var(--hi);display:inline">Noch niemandem</div></td><td class="amt">' + fmtNum(c.unclaimed) + '</td><td></td></tr>';
+    h += '</tbody></table><div class="settle-foot"><span>Offen an ' + esc(o.payer) + '</span><span>' + fmt(c.owedOpen) + '</span></div>';
+  }
+  h += '<div class="barcode" aria-hidden="true"></div><div class="r-foot">' + esc(String(o.id).toUpperCase()) + '<br>Vielen Dank &amp; guten Appetit<br>** Synafood **</div></article>';
+  h += '<div class="row-actions"><button class="btn" type="button" data-action="edit" data-id="' + esc(o.id) + '">Bearbeiten</button><button class="btn" type="button" data-action="show-img" data-id="' + esc(o.id) + '">Foto ansehen</button><button class="btn danger" type="button" data-action="delete" data-id="' + esc(o.id) + '">Löschen</button></div>';
+  return h;
+}
+
+function viewDebts(){
+  const mk = nameKey(me); const pairs = new Map(); let iOwe = 0, iGet = 0;
+  for (const o of sortedOrders()) {
+    const c = computeOrder(o, Store.state.claims[o.id], Store.state.paid[o.id]);
+    for (const p of c.people) {
+      if (p.isPayer || p.total <= 0) continue;
+      const key = p.key + '>' + nameKey(o.payer);
+      if (!pairs.has(key)) pairs.set(key, {from:p.name, fromKey:p.key, to:o.payer, toKey:nameKey(o.payer), open:0, lines:[]});
+      const g = pairs.get(key); g.lines.push({o, p}); if (!p.paid) g.open += p.total;
+      if (!p.paid && p.key === mk) iOwe += p.total;
+      if (!p.paid && nameKey(o.payer) === mk) iGet += p.total;
+    }
+  }
+  let h = '';
+  if (me) h += '<div class="sum-tiles"><div class="paper tile ' + (iOwe ? 'warn' : 'ok') + '"><div class="k">Du musst noch zahlen</div><div class="v">' + fmt(iOwe) + '</div></div><div class="paper tile"><div class="k">Du bekommst noch</div><div class="v">' + fmt(iGet) + '</div></div></div>';
+  h += '<label class="toggle-line"><input type="checkbox" data-toggle="paid"' + (showPaid ? ' checked' : '') + '> Erledigte anzeigen</label>';
+  const groups = [...pairs.values()].filter(g => showPaid || g.open > 0)
+    .sort((a, b) => ((b.fromKey === mk || b.toKey === mk) - (a.fromKey === mk || a.toKey === mk)) || b.open - a.open);
+  if (!groups.length) return h + '<p class="empty counter-text">Niemand schuldet gerade jemandem etwas.</p>';
+  h += '<div class="stack">';
+  for (const g of groups) {
+    h += '<section class="paper pair"><div class="pair-head"><span class="pair-names">' + esc(g.from) + ICON.arrow + esc(g.to) + '</span><span class="mono"><b>' + fmt(g.open) + '</b></span></div>';
+    for (const {o, p} of g.lines) {
+      if (!showPaid && p.paid) continue;
+      h += '<div class="pair-line"><a href="#o-' + esc(o.id) + '">' + esc(o.restaurant || 'Bestellung') + ' · ' + esc(fmtDate(o.date)) + '</a><span class="mono">' + fmt(p.total) + '</span><button class="status-btn ' + (p.paid ? 'paid' : 'open') + '" type="button" data-action="paid" data-order="' + esc(o.id) + '" data-name="' + esc(p.name) + '" data-on="' + (p.paid ? '0' : '1') + '">' + (p.paid ? 'bezahlt' : 'offen') + '</button></div>';
+    }
+    h += '</section>';
+  }
+  return h + '</div>';
+}
+
+function renderBar(r){
+  const bar = $('#bar');
+  if (r.view !== 'order' || !Store.state.orders[r.id]) { bar.hidden = true; document.body.classList.remove('has-bar'); return; }
+  const o = Store.state.orders[r.id]; const c = computeOrder(o, Store.state.claims[o.id], Store.state.paid[o.id]);
+  const mk = nameKey(me); const mine = c.people.find(p => p.key === mk); let inner;
+  if (!me) inner = '<div class="bar-text"><div class="bar-k">Erst Namen festlegen</div><div class="bar-v">–</div></div><div class="bar-btns"><button class="btn primary" type="button" data-action="set-name">Wer bist du?</button></div>';
+  else if (nameKey(o.payer) === mk) inner = '<div class="bar-text"><div class="bar-k">Du bekommst noch</div><div class="bar-v">' + fmt(c.owedOpen) + '</div></div>' + (c.unclaimed ? '<div class="bar-btns"><span class="pill warn">' + fmt(c.unclaimed) + ' offen</span></div>' : '');
+  else if (mine && mine.total) {
+    const pp = paypalLink(o.payInfo, mine.total);
+    inner = '<div class="bar-text"><div class="bar-k">Du zahlst an ' + esc(o.payer) + '</div><div class="bar-v">' + fmt(mine.total) + '</div></div><div class="bar-btns">'
+      + (pp && !mine.paid ? '<a class="btn" href="' + esc(pp) + '" target="_blank" rel="noopener">PayPal</a>' : '')
+      + '<button class="btn ' + (mine.paid ? '' : 'primary') + '" type="button" data-action="paid" data-name="' + esc(me) + '" data-on="' + (mine.paid ? '0' : '1') + '">' + (mine.paid ? 'Bezahlt ✓' : 'Hab bezahlt') + '</button></div>';
+  } else inner = '<div class="bar-text"><div class="bar-k">Hake an, was du bestellt hast</div><div class="bar-v">' + fmt(0) + '</div></div>';
+  bar.innerHTML = '<div class="bar-inner">' + inner + '</div>'; bar.hidden = false; document.body.classList.add('has-bar');
+}
+
+/* ---------- Sheets ---------- */
+function openSheet(title, body, state){
+  sheetState = state || null; $('#sheetTitle').textContent = title; $('#sheetBody').innerHTML = body;
+  $('#sheetWrap').hidden = false; document.body.style.overflow = 'hidden';
+  const f = $('#sheetBody [autofocus]'); if (f) setTimeout(() => f.focus(), 50);
+}
+function closeSheet(){ if (sheetState && sheetState.resolve) { const r = sheetState.resolve; sheetState.resolve = null; r(null); } $('#sheetWrap').hidden = true; document.body.style.overflow = ''; sheetState = null; draft = null; }
+function refreshSheet(){ if (!sheetState) return; if (sheetState.kind === 'assign') renderAssign(); else if (sheetState.kind === 'users') renderUsers(); }
+
+function openNameSheet(after){
+  if (hasUsers()) {
+    openSheet('Wer bist du?', '<p class="hint" style="margin:0">Tipp auf deinen Namen. Dieses Gerät merkt sich die Auswahl, bis du sie änderst.</p><div class="name-list">'
+      + users().map(u => '<button class="name-opt pick' + (nameKey(u.name) === nameKey(me) ? ' cur' : '') + '" type="button" data-action="pick-name" data-name="' + esc(u.name) + '">' + esc(u.name) + (nameKey(u.name) === nameKey(me) ? ' <span class="hint">(aktuell)</span>' : '') + '</button>').join('')
+      + '</div><p class="hint" style="margin:0">Du fehlst in der Liste? Dann muss dich jemand unter „Personen verwalten“ anlegen.</p>', {kind:'name', after});
+    return;
+  }
+  const names = knownNames().filter(n => nameKey(n) !== nameKey(me));
+  openSheet('Wie heißt du?', '<form class="stack" data-form="name"><div class="field"><label for="nameInput">Dein Name (so sehen dich die anderen)</label><input class="input" id="nameInput" autocomplete="given-name" maxlength="40" value="' + esc(me) + '" autofocus></div>'
+    + (names.length ? '<div class="field"><span class="lbl">Oder bist du schon dabei?</span><div class="quick">' + names.map(n => '<button class="btn small" type="button" data-action="pick-name" data-name="' + esc(n) + '">' + esc(n) + '</button>').join('') + '</div></div>' : '')
+    + '<p class="hint" style="margin:0">Tipp: Unter „Personen verwalten“ legst du alle einmal an. Danach wählt jeder seinen Namen nur noch aus der Liste.</p><div class="sheet-foot"><button class="btn primary" type="submit">Speichern</button></div></form>', {kind:'name', after});
+}
+function setMe(n){
+  n = String(n || '').trim().slice(0, 40); if (!n) return false;
+  me = n; LS.set('synafood-me', me); const after = sheetState && sheetState.after; closeSheet(); render(); if (after) after(); return true;
+}
+
+function openAssign(orderId, unit){ openSheet('Wer hatte das?', '', {kind:'assign', orderId, unit}); renderAssign(); }
+function renderAssign(){
+  const {orderId, unit} = sheetState; const o = Store.state.orders[orderId]; if (!o) return closeSheet();
+  const [itemId, k] = unit.split(':'); const it = (o.items || []).find(i => i.id === itemId); if (!it) return closeSheet();
+  const list = (Store.state.claims[orderId] || {})[unit] || []; const set = new Set(list.map(nameKey));
+  const names = [...pickNames(), ...list].filter((n, i, a) => a.findIndex(x => nameKey(x) === nameKey(n)) === i);
+  const q = Math.max(1, it.qty | 0);
+  $('#sheetBody').innerHTML = '<p class="hint" style="margin:0"><b style="color:var(--ink)">' + esc(it.name) + '</b>' + (q > 1 ? ' (' + (+k + 1) + '/' + q + ')' : '') + ' · ' + fmt(it.price / q) + '. Mehrere anhaken, wenn geteilt wurde.</p>'
+    + '<div class="name-list">' + names.map(n => '<label class="name-opt"><input type="checkbox" data-assign-name="' + esc(n) + '"' + (set.has(nameKey(n)) ? ' checked' : '') + '> ' + esc(n) + (nameKey(n) === nameKey(me) ? ' <span class="hint">(du)</span>' : '') + '</label>').join('') + '</div>'
+    + (hasUsers() ? '' : '<form class="grid2" data-form="assign-add" style="grid-template-columns:1fr auto"><input class="input" id="assignNew" placeholder="Neue Person" maxlength="40" aria-label="Neue Person"><button class="btn" type="submit">Hinzufügen</button></form>')
+    + '<div class="sheet-foot"><button class="btn primary" type="button" data-action="close-sheet">Fertig</button></div>';
+}
+
+/* Editor für neue / gescannte / bestehende Bestellung */
+function newDraft(p = {}){
+  return {
+    id: p.id || uid('o'), restaurant: p.restaurant || '', date: p.date || today(), payer: p.payer ?? me, payInfo: p.payInfo ?? LS.get('synafood-payinfo', ''),
+    feeMode: p.feeMode || 'prop', createdAt: p.createdAt || Date.now(), receiptTotal: p.receiptTotal ?? null,
+    items: (p.items && p.items.length ? p.items : [{id:uid('i'), name:'', qty:1, price:0}]).map(i => { const q = Math.max(1, i.qty | 0); return {...i, qty:q, unitText: i.price ? fmtNum(i.price / q) : '', total: i.price || 0}; }),
+    extras: (p.extras || []).map(e => ({...e, priceText: fmtNum(e.price)})), raw: p.raw || '', thumbs: p.thumbs || [], isNew: !!p.isNew, demo: !!p.demo
+  };
+}
+function payerField(cur){
+  if (!hasUsers()) return '<input class="input" id="fPayer" data-f="payer" value="' + esc(cur) + '" maxlength="40" list="nameOptions" required>';
+  const names = users().map(u => u.name); if (cur && !names.some(n => nameKey(n) === nameKey(cur))) names.push(cur);
+  return '<select class="input" id="fPayer" data-f="payer" required><option value="">Bitte wählen</option>' + names.map(n => '<option value="' + esc(n) + '"' + (nameKey(n) === nameKey(cur) ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select>';
+}
+function openEditor(d, title){
+  draft = d;
+  openSheet(title, '<form class="stack" data-form="editor" novalidate>'
+    + (d.thumbs.length ? '<div class="thumbs">' + d.thumbs.map(t => '<img src="' + t + '" alt="Kassenzettel">').join('') + '</div>' : '')
+    + (d.isNew && d.raw ? '<p class="hint" style="margin:0">Bitte kurz prüfen: Die Texterkennung verwechselt manchmal Zeichen. Alles lässt sich hier korrigieren.</p>' : '')
+    + '<div class="grid2"><div class="field"><label for="fRest">Restaurant</label><input class="input" id="fRest" data-f="restaurant" value="' + esc(d.restaurant) + '" maxlength="60"></div><div class="field"><label for="fDate">Datum</label><input class="input" type="date" id="fDate" data-f="date" value="' + esc(d.date) + '"></div></div>'
+    + '<div class="grid2"><div class="field"><label for="fPayer">Bestellt &amp; bezahlt von</label>' + payerField(d.payer) + '</div><div class="field"><label for="fPay">PayPal.me oder IBAN (optional)</label><input class="input" id="fPay" data-f="payInfo" value="' + esc(d.payInfo) + '" maxlength="80" placeholder="paypal.me/name"></div></div>'
+    + '<datalist id="nameOptions">' + knownNames().map(n => '<option value="' + esc(n) + '">').join('') + '</datalist>'
+    + '<div class="field"><span class="lbl">Gerichte (Preis pro Stück, die Summe rechnet sich selbst)</span><div class="erow-head"><span>Anz.</span><span>Gericht</span><span>€ / Stk.</span><span></span></div><div class="erows" id="itemRows"></div><button class="btn small" type="button" data-action="row-add" data-list="items">' + ICON.plus + 'Gericht</button></div>'
+    + '<div class="field"><span class="lbl">Gebühren, Trinkgeld, Rabatt (Rabatt mit Minus)</span><div class="erows" id="extraRows"></div><button class="btn small" type="button" data-action="row-add" data-list="extras">' + ICON.plus + 'Gebühr / Rabatt</button></div>'
+    + '<div class="field"><label for="fMode">Gebühren verteilen</label><select class="input" id="fMode" data-f="feeMode"><option value="prop"' + (d.feeMode !== 'equal' ? ' selected' : '') + '>Anteilig nach Bestellwert</option><option value="equal"' + (d.feeMode === 'equal' ? ' selected' : '') + '>Gleichmäßig pro Person</option></select></div>'
+    + '<div class="field"><label for="fTotal">Endsumme laut Kassenzettel (zum Abgleich)</label><input class="input mono" id="fTotal" data-f="receiptTotal" inputmode="decimal" value="' + (d.receiptTotal != null ? esc(fmtNum(d.receiptTotal)) : '') + '"></div>'
+    + '<div class="sumline" id="sumLine"></div>'
+    + (d.raw ? '<details class="raw"><summary>Erkannter Text</summary><pre>' + esc(d.raw) + '</pre></details>' : '')
+    + '<div class="sheet-foot"><button class="btn" type="button" data-action="close-sheet">Abbrechen</button><button class="btn primary" type="submit">Speichern</button></div></form>', {kind:'editor'});
+  renderRows(); updateSum();
+}
+function rowHtml(list, r, i){
+  if (list === 'items') return '<div class="erow" data-list="items" data-i="' + i + '"><input class="input q" type="number" min="1" max="50" inputmode="numeric" data-rf="qty" value="' + (r.qty || 1) + '" aria-label="Anzahl"><input class="input" data-rf="name" value="' + esc(r.name) + '" placeholder="z. B. Pizza Salami" aria-label="Gericht"><input class="input p" data-rf="unitText" inputmode="decimal" value="' + esc(r.unitText) + '" aria-label="Preis pro Stück"><button class="icon-btn" type="button" data-action="row-del" data-list="items" data-i="' + i + '" aria-label="Zeile löschen">' + ICON.trash + '</button><span class="ltot">' + lineTotalText(r) + '</span></div>';
+  return '<div class="erow" data-list="extras" data-i="' + i + '" style="grid-template-columns:1fr 92px 40px"><input class="input" data-rf="name" value="' + esc(r.name) + '" placeholder="z. B. Liefergebühr" aria-label="Bezeichnung"><input class="input p" data-rf="priceText" inputmode="decimal" value="' + esc(r.priceText) + '" aria-label="Betrag"><button class="icon-btn" type="button" data-action="row-del" data-list="extras" data-i="' + i + '" aria-label="Zeile löschen">' + ICON.trash + '</button></div>';
+}
+function lineTotalText(r){ const q = Math.max(1, parseInt(r.qty, 10) || 1); return q > 1 && r.total ? q + ' × ' + fmtNum(r.total / q) + ' = ' + fmtNum(r.total) + ' €' : ''; }
+function renderRows(){
+  $('#itemRows').innerHTML = draft.items.map((r, i) => rowHtml('items', r, i)).join('');
+  $('#extraRows').innerHTML = draft.extras.map((r, i) => rowHtml('extras', r, i)).join('');
+}
+function updateSum(){
+  const items = draft.items.reduce((a, r) => a + (r.total || 0), 0);
+  const extras = draft.extras.reduce((a, r) => a + toCents(r.priceText), 0);
+  const sum = items + extras; const el = $('#sumLine'); if (!el) return;
+  const rt = draft.receiptTotal;
+  const diff = rt != null && rt !== 0 ? sum - rt : 0;
+  el.className = 'sumline' + (diff ? ' bad' : '');
+  el.innerHTML = '<span>Gerichte ' + fmt(items) + ' + Gebühren ' + fmt(extras) + '</span><span class="mono"><b>= ' + fmt(sum) + '</b>' + (diff ? ' · weicht um ' + fmt(diff) + ' ab' : (rt ? ' ✓ passt' : '')) + '</span>';
+}
+async function saveDraft(){
+  const d = draft; const payer = String(d.payer || '').trim();
+  if (!payer) { toast('Bitte eintragen, wer bestellt hat.'); $('#fPayer').focus(); return; }
+  const items = d.items.filter(r => String(r.name).trim()).map(r => ({id:r.id, name:String(r.name).trim().slice(0, 80), qty:Math.max(1, Math.min(50, parseInt(r.qty, 10) || 1)), price:r.total || 0}));
+  if (!items.length) { toast('Bitte mindestens ein Gericht eintragen.'); return; }
+  const extras = d.extras.filter(r => String(r.name).trim() || toCents(r.priceText)).map(r => ({id:r.id, name:String(r.name).trim().slice(0, 60) || 'Gebühr', price:toCents(r.priceText)}));
+  const order = {id:d.id, restaurant:String(d.restaurant).trim().slice(0, 60), date:d.date, payer:payer.slice(0, 40), payInfo:String(d.payInfo || '').trim().slice(0, 80), feeMode:d.feeMode, createdAt:d.createdAt, items, extras, receiptTotal:d.receiptTotal};
+  if (d.demo) order.demo = true;
+  if (order.payInfo && nameKey(order.payer) === nameKey(me)) LS.set('synafood-payinfo', order.payInfo);
+  const thumbs = d.isNew ? d.thumbs : null; const id = d.id;
+  closeSheet();
+  await Store.dispatch({type:'upsertOrder', order});
+  if (thumbs && thumbs.length) Store.saveImgs(id, thumbs);
+  if (d.isNew) pendingShare = id;
+  if (location.hash === '#o-' + id) { render(); if (pendingShare) { const s = pendingShare; pendingShare = null; openShareSheet(s); } }
+  else location.hash = '#o-' + id;
+}
+
+async function startScan(files){
+  const prepared = [];
+  for (let i = 0; i < files.length; i++) {
+    let img; try { img = await loadImage(files[i]); } catch { toast('Das Bild konnte nicht geöffnet werden.'); return; }
+    const box = await openCrop(img, detectPaper(img), i, files.length);
+    if (!box) return;
+    prepared.push({img, box});
+  }
+  const thumbs = prepared.map(p => cropThumb(p.img, p.box));
+  if (await tryLlm(prepared.map(p => llmImage(p.img, p.box)), thumbs, 'Kassenzettel prüfen')) return;
+  openSheet('Kassenzettel wird gelesen', '<p class="hint" id="ocrStatus" style="margin:0">Wird vorbereitet …</p><div class="progress-big"><span id="ocrBar"></span></div><p class="hint" style="margin:0">Beim ersten Scan lädt die Texterkennung einmalig ihre Sprachdaten (ca. 10 MB). Danach geht es schneller.</p>', {kind:'ocr'});
+  try {
+    const texts = await runOcr(prepared, (msg, p) => { const s = $('#ocrStatus'), b = $('#ocrBar'); if (s) s.textContent = msg; if (b) b.style.width = Math.round(Math.max(0.03, Math.min(1, p)) * 100) + '%'; });
+    if (!sheetState || sheetState.kind !== 'ocr') return;
+    openParsed(mergeParses(texts.map(parseReceipt)), texts[0], thumbs, 'Kassenzettel prüfen');
+  } catch (e) {
+    if (!sheetState || sheetState.kind !== 'ocr') return;
+    $('#sheetBody').innerHTML = '<p style="margin:0">Die Texterkennung konnte nicht geladen werden. Dafür braucht das Handy beim ersten Scan Internet.</p><p class="hint" style="margin:0">Du kannst die Gerichte trotzdem von Hand eintragen, das Foto wird mitgespeichert.</p><div class="sheet-foot"><button class="btn" type="button" data-action="close-sheet">Abbrechen</button><button class="btn primary" type="button" data-action="manual-after-fail">Von Hand eintragen</button></div>';
+    sheetState.thumbs = thumbs;
+  }
+}
+
+/* ---------- KI-Scanner im Browser ---------- */
+let serverLlm = null;
+function llmConfig(){
+  if (serverLlm) return {via:'server', model:serverLlm.model};
+  const c = LS.get('synafood-llm', null);
+  return c && c.enabled !== false && c.url && c.model ? {via:'direct', ...c} : null;
+}
+function llmImage(img, box){
+  const sx = box.x0 * img.width, sy = box.y0 * img.height, sw = (box.x1 - box.x0) * img.width, sh = (box.y1 - box.y0) * img.height;
+  const s = Math.min(1, 1100 / sw, 2600 / sh); const c = document.createElement('canvas'); c.width = Math.round(sw * s); c.height = Math.round(sh * s);
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.86);
+}
+async function scanWithLlm(images){
+  const cfg = llmConfig();
+  if (cfg.via === 'server') {
+    const r = await fetch('api/scan', {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({images})});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || ('Server antwortet mit ' + r.status));
+    return j.text;
+  }
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 240000);
+  try { return await llmScan(cfg, images, ctrl.signal); }
+  catch (e) { throw new Error(e.name === 'AbortError' ? 'Zeitüberschreitung' : (e instanceof TypeError ? 'Modell nicht erreichbar (Adresse, CORS oder http/https prüfen)' : e.message)); }
+  finally { clearTimeout(t); }
+}
+function parseLlmJson(text){
+  let t = String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```(?:json)?/gi, '');
+  const a = t.indexOf('{'), b = t.lastIndexOf('}'); if (a < 0 || b < a) throw new Error('Antwort enthält kein JSON');
+  let j; const raw = t.slice(a, b + 1);
+  try { j = JSON.parse(raw); } catch { j = JSON.parse(raw.replace(/,\s*([}\]])/g, '$1')); }
+  const money = v => typeof v === 'number' ? Math.round(v * 100) : toCents(v);
+  const items = (j.positionen || j.items || []).map(p => ({id:uid('i'), name:String(p.name || p.bezeichnung || '').trim().slice(0, 80), qty:Math.max(1, Math.min(50, parseInt(p.menge ?? p.qty ?? 1, 10) || 1)), price:money(p.preis ?? p.price ?? 0)})).filter(i => i.name && i.price);
+  const extras = (j.gebuehren || j.extras || []).map(e => ({id:uid('e'), name:String(e.name || 'Gebühr').trim().slice(0, 60), price:money(e.betrag ?? e.price ?? 0)})).filter(e => e.price);
+  let date = String(j.datum || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { const d = date.match(/(\d{1,2})\.(\d{1,2})\.(\d{2,4})/); date = d ? (d[3].length === 2 ? '20' + d[3] : d[3]) + '-' + d[2].padStart(2, '0') + '-' + d[1].padStart(2, '0') : ''; }
+  const k = String(j.kunde || '').trim().split(/\s+/)[0] || '';
+  const total = j.gesamt != null && j.gesamt !== '' ? Math.abs(money(j.gesamt)) || null : null;
+  return {restaurant:String(j.restaurant || '').trim().slice(0, 60), date, payer: k ? k[0].toUpperCase() + k.slice(1).toLowerCase() : '', items, extras, total};
+}
+function openParsed(parsed, raw, thumbs, title){
+  if (!parsed.items.length) toast('Keine Gerichte erkannt – bitte von Hand eintragen.');
+  const payer = matchPerson(parsed.payer) || me;
+  openEditor(newDraft({...parsed, payer, receiptTotal:parsed.total, raw, thumbs, isNew:true}), title);
+}
+// Liefert true, wenn die KI ein Ergebnis geliefert hat; sonst übernimmt die lokale Texterkennung.
+async function tryLlm(images, thumbs, title){
+  const cfg = llmConfig(); if (!cfg) return false;
+  openSheet('KI liest den Bon', '<p class="hint" style="margin:0">Das Bild geht an <b style="color:var(--ink)">' + esc(cfg.model) + '</b>' + (cfg.via === 'server' ? ' (über den Synafood-Server)' : '') + '. Je nach Rechner dauert das 10 bis 90 Sekunden.</p><div class="progress-big indet"><span></span></div><div class="sheet-foot"><button class="btn" type="button" data-action="llm-skip">Lokale Texterkennung nutzen</button></div>', {kind:'ocr', llm:true});
+  try {
+    const skip = new Promise(res => { sheetState.skip = () => res(null); });
+    const job = scanWithLlm(images); job.catch(() => {});
+    const text = await Promise.race([job, skip]);
+    if (text === null) return false;
+    if (!sheetState || sheetState.kind !== 'ocr') return true;
+    const parsed = parseLlmJson(text);
+    if (!parsed.items.length) throw new Error('keine Gerichte erkannt');
+    openParsed(parsed, text, thumbs, title); return true;
+  } catch (e) {
+    if (!sheetState || sheetState.kind !== 'ocr' || !sheetState.llm) return true;
+    toast('KI-Scan fehlgeschlagen: ' + (e.message || e) + '. Lokale Texterkennung übernimmt.');
+    return false;
+  }
+}
+function openUsers(){ openSheet('Personen verwalten', '', {kind:'users'}); renderUsers(); }
+function renderUsers(msg){
+  const list = users(); const legacy = knownNames().filter(n => !list.some(u => nameKey(u.name) === nameKey(n)));
+  $('#sheetBody').innerHTML = '<p class="hint" style="margin:0">Wer hier steht, kann sich auf jedem Gerät per Tippen auswählen. Freies Eintippen von Namen ist dann aus.</p>'
+    + (serverAdmin ? '<div class="field"><label for="adminPw">Admin-Passwort</label><input class="input" id="adminPw" type="password" autocomplete="current-password" value="' + esc(LS.get('synafood-admin', '') || '') + '"></div>' : '')
+    + '<form class="grid2" data-form="user-add" style="grid-template-columns:1fr auto"><input class="input" id="userNew" placeholder="Name" maxlength="40" aria-label="Neue Person" autocomplete="off"><button class="btn primary" type="submit">Anlegen</button></form>'
+    + (msg ? '<p class="hint" style="margin:0;color:var(--red);font-weight:700">' + esc(msg) + '</p>' : '')
+    + (list.length ? '<div class="name-list">' + list.map(u => '<div class="name-opt"><span style="flex:1">' + esc(u.name) + (nameKey(u.name) === nameKey(me) ? ' <span class="hint">(dieses Gerät)</span>' : '') + '</span><button class="status-btn open" type="button" data-action="user-del" data-id="' + esc(u.id) + '">Entfernen</button></div>').join('') + '</div>' : '<p class="hint" style="margin:0">Noch niemand angelegt.</p>')
+    + (legacy.length ? '<div class="field"><span class="lbl">Schon in Bestellungen vorgekommen, mit einem Tipp übernehmen</span><div class="quick">' + legacy.map(n => '<button class="btn small" type="button" data-action="user-quick" data-name="' + esc(n) + '">+ ' + esc(n) + '</button>').join('') + '</div></div>' : '')
+    + '<div class="sheet-foot"><button class="btn" type="button" data-action="close-sheet">Fertig</button></div>';
+}
+async function adminDispatch(op){
+  if (serverAdmin) { const el = $('#adminPw'); LS.set('synafood-admin', el ? el.value : ''); }
+  const r = await Store.dispatch(op);
+  if (r === 'denied') { LS.del('synafood-admin'); if (sheetState && sheetState.kind === 'users') renderUsers('Falsches Admin-Passwort – nichts geändert.'); return false; }
+  if (sheetState && sheetState.kind === 'users') renderUsers();
+  return r === 'ok';
+}
+function llmStatusLine(){
+  const c = llmConfig();
+  return '<p class="footer-hint" style="margin:6px 0 0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn small" type="button" data-action="users">Personen verwalten' + (hasUsers() ? ' (' + Store.state.users.length + ')' : '') + '</button><button class="btn small" type="button" data-action="llm-settings">' + (c ? 'KI-Scanner: ' + esc(c.model) : 'KI-Scanner einrichten') + '</button></p>';
+}
+function openLlmSettings(){
+  if (serverLlm) {
+    openSheet('KI-Scanner', '<p style="margin:0">Der Synafood-Server schickt Bons an <b>' + esc(serverLlm.model) + '</b>. Das gilt für alle Geräte.</p><p class="hint" style="margin:0">Geändert wird das über die Umgebungsvariablen LLM_URL und LLM_MODEL des Containers.</p><div class="sheet-foot"><button class="btn primary" type="button" data-action="close-sheet">OK</button></div>', {kind:'llm'});
+    return;
+  }
+  const c = LS.get('synafood-llm', {}) || {};
+  openSheet('KI-Scanner einrichten', '<form class="stack" data-form="llm">'
+    + '<p class="hint" style="margin:0">Bons werden an dein lokales Vision-Modell geschickt statt an die Texterkennung im Browser. Klappt das nicht, springt automatisch die Texterkennung ein.</p>'
+    + '<div class="field"><label for="llmUrl">Adresse des Modell-Servers</label><input class="input" id="llmUrl" value="' + esc(c.url || '') + '" placeholder="http://192.168.1.50:11434" inputmode="url" autocomplete="off"></div>'
+    + '<div class="grid2"><div class="field"><label for="llmModel">Modell</label><input class="input" id="llmModel" value="' + esc(c.model || '') + '" placeholder="qwen3-vl:8b" autocomplete="off"></div>'
+    + '<div class="field"><label for="llmApi">Schnittstelle</label><select class="input" id="llmApi">' + [['auto','Automatisch'],['ollama','Ollama'],['openai','OpenAI-kompatibel (LM Studio, vLLM, llama.cpp)']].map(([v, l]) => '<option value="' + v + '"' + ((c.api || 'auto') === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></div></div>'
+    + '<div class="field"><label for="llmKey">Bearer-Token / API-Key (optional)</label><input class="input" id="llmKey" type="password" value="' + esc(c.key || '') + '" autocomplete="off" placeholder="nur das Token, ohne „Bearer“"></div>'
+    + '<p class="hint" style="margin:0" id="llmTestOut">Direkt aus dem Browser braucht der Modell-Server CORS: bei Ollama OLLAMA_ORIGINS=*, bei LM Studio „CORS aktivieren“. Läuft Synafood über https, blockiert der Browser http-Adressen. Dann LLM_URL am Synafood-Server setzen.</p>'
+    + '<div class="sheet-foot">' + (c.url ? '<button class="btn danger" type="button" data-action="llm-off">Ausschalten</button>' : '') + '<button class="btn" type="button" data-action="llm-test">Verbindung testen</button><button class="btn primary" type="submit">Speichern</button></div></form>', {kind:'llm'});
+}
+function readLlmForm(){ return {url:$('#llmUrl').value.trim(), model:$('#llmModel').value.trim(), api:$('#llmApi').value, key:$('#llmKey').value.trim().replace(/^bearer\s+/i, ''), enabled:true}; }
+
+/* ---------- PDF-Belege (z. B. Lieferando-Bestellbestätigung als PDF gespeichert) ---------- */
+const PDFJS_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/';
+let pdfjsLib = null;
+async function loadPdfJs(){
+  if (pdfjsLib) return pdfjsLib;
+  const lib = await import(PDFJS_BASE + 'pdf.min.mjs');
+  try {
+    const code = await (await fetch(PDFJS_BASE + 'pdf.worker.min.mjs')).text();
+    lib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([code], {type:'text/javascript'}));
+  } catch { lib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + 'pdf.worker.min.mjs'; }
+  return (pdfjsLib = lib);
+}
+// Setzt die Textstücke einer PDF-Seite wieder zu Zeilen zusammen (Name links, Preis rechts → eine Zeile).
+function pdfLines(items){
+  const parts = items.filter(i => i.str && i.str.trim()).map(i => ({s:i.str, x:i.transform[4], y:i.transform[5], w:i.width || 0, h:Math.abs(i.transform[3]) || i.height || 10}));
+  parts.sort((a, b) => b.y - a.y || a.x - b.x);
+  const lines = [];
+  for (const p of parts) {
+    const line = lines.find(l => Math.abs(l.y - p.y) <= Math.max(2, Math.min(l.h, p.h) * 0.45));
+    if (line) line.parts.push(p); else lines.push({y:p.y, h:p.h, parts:[p]});
+  }
+  lines.sort((a, b) => b.y - a.y);
+  return lines.map(l => {
+    l.parts.sort((a, b) => a.x - b.x);
+    let out = '', end = null;
+    for (const p of l.parts) { if (end !== null) out += (p.x - end > p.h * 0.18 ? ' ' : ''); out += p.s; end = p.x + p.w; }
+    return out.replace(/[−–]/g, '-').replace(/\s+/g, ' ').trim();
+  }).filter(Boolean).join('\n');
+}
+async function renderPdfPage(doc, n, scale){
+  const page = await doc.getPage(n); const vp = page.getViewport({scale});
+  const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  await page.render({canvasContext:ctx, viewport:vp}).promise; return c;
+}
+async function startPdf(file){
+  openSheet('PDF wird gelesen', '<p class="hint" id="ocrStatus" style="margin:0">PDF wird geöffnet …</p><div class="progress-big"><span id="ocrBar" style="width:10%"></span></div>', {kind:'ocr'});
+  const status = (msg, p) => { const s = $('#ocrStatus'), b = $('#ocrBar'); if (s) s.textContent = msg; if (b) b.style.width = Math.round(Math.max(0.05, Math.min(1, p)) * 100) + '%'; };
+  let doc;
+  try { const lib = await loadPdfJs(); doc = await lib.getDocument({data: new Uint8Array(await file.arrayBuffer())}).promise; }
+  catch (e) {
+    if (!sheetState || sheetState.kind !== 'ocr') return;
+    $('#sheetBody').innerHTML = '<p style="margin:0">Das PDF konnte nicht geöffnet werden. Beim ersten Mal braucht das Handy Internet, um den PDF-Leser zu laden. Passwortgeschützte PDFs gehen nicht.</p><div class="sheet-foot"><button class="btn" type="button" data-action="close-sheet">Abbrechen</button><button class="btn primary" type="button" data-action="manual-after-fail">Von Hand eintragen</button></div>';
+    return;
+  }
+  const pages = Math.min(doc.numPages, 4); let text = ''; const thumbs = [];
+  for (let n = 1; n <= pages; n++) {
+    status('Seite ' + n + ' von ' + pages + ' wird gelesen …', n / (pages + 1));
+    const page = await doc.getPage(n); const tc = await page.getTextContent(); text += pdfLines(tc.items) + '\n';
+    if (thumbs.length < 2) thumbs.push((await renderPdfPage(doc, n, 1.4)).toDataURL('image/jpeg', 0.72));
+  }
+  if (!sheetState || sheetState.kind !== 'ocr') return;
+  let parsed;
+  if (letterCount(text) >= 30) parsed = parseReceipt(text);
+  else {
+    // PDF enthält nur ein Bild (gescannt): Seiten rendern und per Texterkennung lesen
+    const prepared = [];
+    for (let n = 1; n <= pages; n++) prepared.push({img: await renderPdfPage(doc, n, 3), box:{x0:0, y0:0, x1:1, y1:1}});
+    if (await tryLlm(prepared.map(p => llmImage(p.img, p.box)), thumbs, 'Beleg prüfen')) return;
+    openSheet('PDF wird gelesen', '<p class="hint" id="ocrStatus" style="margin:0">Texterkennung läuft …</p><div class="progress-big"><span id="ocrBar" style="width:5%"></span></div>', {kind:'ocr'});
+    try { const texts = await runOcr(prepared, status); text = texts[0]; parsed = mergeParses(texts.map(parseReceipt)); }
+    catch { parsed = {restaurant:'', date:'', payer:'', items:[], extras:[], total:null}; }
+    if (!sheetState || sheetState.kind !== 'ocr') return;
+  }
+  if (!parsed.items.length) toast('Keine Gerichte erkannt – bitte von Hand eintragen.');
+  const payer = parsed.payer ? (knownNames().find(n => nameKey(n) === nameKey(parsed.payer)) || parsed.payer) : me;
+  openEditor(newDraft({...parsed, payer, receiptTotal:parsed.total, raw:text, thumbs, isNew:true}), 'Beleg prüfen');
+}
+
+/* ---------- Teilen ---------- */
+let pendingShare = null;
+function orderUrl(id){ return location.href.split('#')[0] + '#o-' + id; }
+function shareText(o){ return 'Synafood: ' + (o.restaurant || 'Bestellung') + (o.payer ? ' (bezahlt von ' + o.payer + ')' : '') + '. Hak an, was du hattest:'; }
+function openShareSheet(id){
+  const o = Store.state.orders[id]; if (!o) return;
+  const url = orderUrl(id), text = shareText(o);
+  openSheet('Link teilen', '<p style="margin:0">Schick den Link in die Gruppe. Jeder öffnet ihn, hakt sein Gericht an und sieht, was er an ' + esc(o.payer || 'den Besteller') + ' zahlen muss.</p>'
+    + '<div class="share-url mono">' + esc(url) + '</div>'
+    + (Store.mode === 'local' ? '<p class="hint" style="margin:0;color:var(--red)">Testmodus: Der Link funktioniert erst, wenn Synafood auf deinem Server läuft.</p>' : '')
+    + '<div class="share-btns">' + (navigator.share ? '<button class="btn primary" type="button" data-action="share-native" data-id="' + esc(id) + '">' + ICON.share + 'Teilen …</button>' : '')
+    + '<a class="btn" href="https://wa.me/?text=' + encodeURIComponent(text + ' ' + url) + '" target="_blank" rel="noopener">WhatsApp</a>'
+    + '<button class="btn" type="button" data-action="copy" data-text="' + esc(url) + '">Link kopieren</button></div>'
+    + '<div class="sheet-foot"><button class="btn ghost" type="button" data-action="close-sheet">Fertig</button></div>', {kind:'share'});
+}
+async function shareNative(id){
+  const o = Store.state.orders[id]; if (!o) return;
+  try { await navigator.share({title:'Synafood – ' + (o.restaurant || 'Bestellung'), text:shareText(o), url:orderUrl(id)}); }
+  catch (e) { if (e && e.name !== 'AbortError') toast('Teilen nicht möglich – nutze „Link kopieren“.'); }
+}
+
+/* ---------- Toast ---------- */
+let toastT;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3200); }
+
+/* ---------- Ereignisse ---------- */
+const actions = {
+  'set-name': () => openNameSheet(),
+  'pick-name': el => setMe(el.dataset.name),
+  'close-sheet': () => closeSheet(),
+  'crop-ok': () => finishCrop(false),
+  'llm-settings': () => openLlmSettings(),
+  users: () => openUsers(),
+  'user-quick': el => adminDispatch({type:'addUser', id:uid('u'), name:el.dataset.name}),
+  'user-del': el => {
+    if (el.dataset.sure !== '1') { el.dataset.sure = '1'; el.textContent = 'Wirklich?'; return; }
+    adminDispatch({type:'removeUser', id:el.dataset.id});
+  },
+  'llm-skip': () => { if (sheetState) sheetState.llm = false; const r = sheetState && sheetState.skip; if (r) r(); },
+  'llm-off': () => { const c = LS.get('synafood-llm', {}) || {}; c.enabled = false; c.url = ''; LS.set('synafood-llm', c); closeSheet(); render(); toast('KI-Scanner ausgeschaltet'); },
+  'llm-test': async () => {
+    const c = readLlmForm(); const out = $('#llmTestOut');
+    if (!c.url || !c.model) { out.textContent = 'Bitte Adresse und Modell eintragen.'; return; }
+    out.textContent = 'Teste Verbindung …';
+    try { const r = await llmTest(c, AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined);
+      out.textContent = r.found ? 'Verbunden (' + (r.type === 'ollama' ? 'Ollama' : 'OpenAI-kompatibel') + '). Modell „' + c.model + '“ ist vorhanden.' : 'Verbunden, aber das Modell „' + c.model + '“ fehlt. Vorhanden: ' + (r.names.slice(0, 8).join(', ') || 'keine');
+    } catch (e) { out.textContent = 'Keine Verbindung: ' + (e instanceof TypeError ? 'Server nicht erreichbar oder CORS blockiert.' : e.message); }
+  },
+  'crop-full': () => finishCrop(true),
+  scan: () => $('#fileInput').click(),
+  manual: () => { const go = () => openEditor(newDraft({isNew:true}), 'Neue Bestellung'); me ? go() : openNameSheet(go); },
+  'manual-after-fail': () => { const thumbs = (sheetState && sheetState.thumbs) || []; openEditor(newDraft({isNew:true, thumbs}), 'Neue Bestellung'); },
+  assign: el => { const r = route(); openAssign(r.id, el.dataset.unit); },
+  paid: el => {
+    const orderId = el.dataset.order || route().id; const name = el.dataset.name;
+    Store.dispatch({type:'setPaid', orderId, name, on: el.dataset.on === '1'});
+  },
+  share: el => openShareSheet(el.dataset.id),
+  'share-native': el => shareNative(el.dataset.id),
+  copy: async el => { try { await navigator.clipboard.writeText(el.dataset.text); toast('Kopiert'); } catch { toast('Kopieren nicht möglich – bitte markieren.'); } },
+  edit: el => { const o = Store.state.orders[el.dataset.id]; if (o) openEditor(newDraft(o), 'Bestellung bearbeiten'); },
+  'show-img': async el => {
+    openSheet('Kassenzettel', '<p class="hint">Wird geladen …</p>', {kind:'img'});
+    const imgs = await Store.getImgs(el.dataset.id);
+    if (sheetState && sheetState.kind === 'img') $('#sheetBody').innerHTML = imgs && imgs.length ? '<div class="receipt-img">' + imgs.map(s => '<img src="' + esc(s) + '" alt="Foto des Kassenzettels">').join('') + '</div>' : '<p class="hint" style="margin:0">Zu dieser Bestellung ist kein Foto gespeichert.</p>';
+  },
+  delete: el => {
+    const o = Store.state.orders[el.dataset.id]; if (!o) return;
+    openSheet('Bestellung löschen?', '<p style="margin:0">„' + esc(o.restaurant || 'Bestellung') + '“ mit allen Häkchen und Bezahlt-Markierungen wird für alle gelöscht.</p><div class="sheet-foot"><button class="btn" type="button" data-action="close-sheet">Abbrechen</button><button class="btn primary" type="button" data-action="delete-confirm" data-id="' + esc(o.id) + '" style="background:var(--bad);border-color:var(--bad)">Löschen</button></div>', {kind:'confirm'});
+  },
+  'delete-confirm': el => { const id = el.dataset.id; closeSheet(); Store.delImgs(id); Store.dispatch({type:'deleteOrder', id}); location.hash = '#bestellungen'; toast('Bestellung gelöscht'); },
+  'row-add': el => { const list = el.dataset.list; draft[list].push(list === 'items' ? {id:uid('i'), name:'', qty:1, unitText:'', total:0} : {id:uid('e'), name:'', priceText:''}); renderRows(); updateSum(); const rows = document.querySelectorAll('#' + (list === 'items' ? 'itemRows' : 'extraRows') + ' .erow'); const last = rows[rows.length - 1]; if (last) last.querySelector('[data-rf="name"]').focus(); },
+  'row-del': el => { draft[el.dataset.list].splice(+el.dataset.i, 1); renderRows(); updateSum(); },
+  install: async () => { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch {} installEvt = null; render(); }
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-action]'); if (!el) return;
+  const fn = actions[el.dataset.action]; if (fn) { e.preventDefault(); fn(el, e); }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheetWrap').hidden) closeSheet(); });
+
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.claim) {
+    const r = route(); const on = t.checked;
+    if (!me) { t.checked = !on; return openNameSheet(() => Store.dispatch({type:'setClaim', orderId:r.id, unit:t.dataset.claim, name:me, on:true})); }
+    Store.dispatch({type:'setClaim', orderId:r.id, unit:t.dataset.claim, name:me, on});
+  } else if (t.dataset.assignName) {
+    Store.dispatch({type:'setClaim', orderId:sheetState.orderId, unit:sheetState.unit, name:t.dataset.assignName, on:t.checked}); renderAssign();
+  } else if (t.dataset.toggle === 'paid') { showPaid = t.checked; render(); }
+  else if (t.dataset.f === 'feeMode' && draft) draft.feeMode = t.value;
+});
+document.addEventListener('input', e => {
+  const t = e.target; if (!draft) return;
+  if (t.dataset.f) { draft[t.dataset.f] = t.dataset.f === 'receiptTotal' ? (t.value.trim() ? toCents(t.value) : null) : t.value; if (t.dataset.f === 'receiptTotal') updateSum(); }
+  else if (t.dataset.rf) {
+    const row = t.closest('.erow'); const r = draft[row.dataset.list][+row.dataset.i]; if (!r) return;
+    r[t.dataset.rf] = t.value;
+    if (row.dataset.list === 'items' && (t.dataset.rf === 'qty' || t.dataset.rf === 'unitText')) {
+      r.total = Math.round(toCents(r.unitText) * Math.max(1, Math.min(50, parseInt(r.qty, 10) || 1)));
+      const lt = row.querySelector('.ltot'); if (lt) lt.textContent = lineTotalText(r);
+    }
+    updateSum();
+  }
+});
+document.addEventListener('submit', e => {
+  const f = e.target.dataset.form; if (!f) return; e.preventDefault();
+  if (f === 'name') { if (!setMe($('#nameInput').value)) toast('Bitte einen Namen eingeben.'); }
+  else if (f === 'editor') saveDraft();
+  else if (f === 'user-add') {
+    const n = $('#userNew').value.trim(); if (!n) return;
+    if ((Store.state.users || []).some(u => nameKey(u.name) === nameKey(n))) { renderUsers('„' + n + '“ gibt es schon.'); return; }
+    adminDispatch({type:'addUser', id:uid('u'), name:n}).then(ok => { const i = $('#userNew'); if (i && ok) i.focus(); });
+  }
+  else if (f === 'llm') { const c = readLlmForm(); if (!c.url || !c.model) { toast('Bitte Adresse und Modell eintragen.'); return; } LS.set('synafood-llm', c); closeSheet(); render(); toast('KI-Scanner gespeichert'); }
+  else if (f === 'assign-add') {
+    const inp = $('#assignNew'); const n = inp.value.trim(); if (!n) return;
+    Store.dispatch({type:'setClaim', orderId:sheetState.orderId, unit:sheetState.unit, name:n, on:true}); renderAssign();
+  }
+});
+$('#fileInput').addEventListener('change', e => {
+  const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
+  const pdf = files.find(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+  if (pdf) startPdf(pdf); else startScan(files.filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|heic|webp)$/i.test(f.name)));
+});
+window.addEventListener('hashchange', () => { if (!$('#sheetWrap').hidden) closeSheet(); render(); window.scrollTo(0, 0); if (pendingShare) { const s = pendingShare; pendingShare = null; openShareSheet(s); } });
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (route().view === 'list') render(); });
+
+(async () => {
+  await Store.init(); render();
+  if (hasUsers() && !meOk()) openNameSheet();
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && Store.mode === 'server') navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>

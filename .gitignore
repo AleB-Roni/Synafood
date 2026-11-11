@@ -1,0 +1,4 @@
+data/
+*.tar
+.DS_Store
+Thumbs.db

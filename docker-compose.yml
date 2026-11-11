@@ -1,0 +1,21 @@
+# Portainer: Stack aus diesem Repository anlegen. Werte unten über "Environment variables" im Stack setzen,
+# damit Passwörter und Token nicht im Git landen.
+services:
+  synafood:
+    image: ghcr.io/aleb-roni/synafood:latest   # wird von GitHub Actions bei jedem Push gebaut
+    container_name: synafood
+    restart: unless-stopped
+    ports:
+      - "${SYNAFOOD_PORT:-8080}:8080"
+    environment:
+      - APP_PASSWORD=${APP_PASSWORD:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - LLM_URL=${LLM_URL:-}
+      - LLM_MODEL=${LLM_MODEL:-qwen3-vl:8b}
+      - LLM_API=${LLM_API:-auto}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+    volumes:
+      - synafood-data:/data
+
+volumes:
+  synafood-data:

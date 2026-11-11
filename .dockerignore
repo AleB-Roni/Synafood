@@ -1,0 +1,7 @@
+.git
+.github
+data
+*.command
+*.bat
+README.md
+docker-compose.yml
