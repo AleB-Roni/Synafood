@@ -3,7 +3,7 @@ chcp 65001 >nul
 rem Synafood nach GitHub hochladen (Doppelklick). Legt beim ersten Mal das private Repo an.
 cd /d "%~dp0"
 set OWNER=AleB-Roni
-set REPO=synafood
+set REPO=Synafood
 echo == Synafood nach GitHub hochladen ==
 where git >nul 2>nul
 if errorlevel 1 (
@@ -16,10 +16,6 @@ git config user.name >nul 2>nul
 if errorlevel 1 git config user.name "%OWNER%"
 git config user.email >nul 2>nul
 if errorlevel 1 git config user.email "%OWNER%@users.noreply.github.com"
-git add -A
-git commit -q -m "Update %date% %time:~0,5%" >nul 2>nul
-if errorlevel 1 (echo Keine neuen Aenderungen.) else (echo Aenderungen gespeichert.)
-git branch -M main
 where gh >nul 2>nul
 if errorlevel 1 goto remote
 gh auth status >nul 2>nul
@@ -32,6 +28,18 @@ gh repo create %OWNER%/%REPO% --private --description "Synafood - Kassenzettel t
 :remote
 git remote get-url origin >nul 2>nul
 if errorlevel 1 git remote add origin https://github.com/%OWNER%/%REPO%.git
+rem Stand von GitHub holen; bei frisch entpacktem Ordner wird er die Basis fuer dieses Update
+git fetch -q origin main 2>nul
+git rev-parse -q --verify HEAD >nul 2>nul
+if not errorlevel 1 goto commit
+git rev-parse -q --verify origin/main >nul 2>nul
+if errorlevel 1 goto commit
+git reset -q --soft origin/main
+:commit
+git branch -M main
+git add -A
+git commit -q -m "Update %date% %time:~0,5%" >nul 2>nul
+if errorlevel 1 (echo Keine neuen Aenderungen.) else (echo Aenderungen gespeichert.)
 git push -u origin main
 if errorlevel 1 goto failed
 echo.

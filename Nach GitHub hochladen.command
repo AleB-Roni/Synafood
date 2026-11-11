@@ -2,7 +2,7 @@
 # Synafood nach GitHub hochladen (Doppelklick). Legt beim ersten Mal das private Repo an.
 cd "$(dirname "$0")" || exit 1
 OWNER="AleB-Roni"
-REPO="synafood"
+REPO="Synafood"
 echo "== Synafood nach GitHub hochladen =="
 if ! command -v git >/dev/null 2>&1; then
   echo "Git fehlt. Im Terminal einmal ausführen: xcode-select --install"
@@ -11,9 +11,6 @@ fi
 [ -d .git ] || git init -q -b main
 git config user.name  >/dev/null 2>&1 || git config user.name  "$OWNER"
 git config user.email >/dev/null 2>&1 || git config user.email "$OWNER@users.noreply.github.com"
-git add -A
-if git commit -q -m "Update $(date '+%Y-%m-%d %H:%M')" >/dev/null 2>&1; then echo "Änderungen gespeichert."; else echo "Keine neuen Änderungen."; fi
-git branch -M main
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   gh auth setup-git >/dev/null 2>&1
   if ! gh repo view "$OWNER/$REPO" >/dev/null 2>&1; then
@@ -22,6 +19,14 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   fi
 fi
 git remote get-url origin >/dev/null 2>&1 || git remote add origin "https://github.com/$OWNER/$REPO.git"
+# Stand von GitHub holen; bei frisch entpacktem Ordner wird er die Basis für dieses Update
+git fetch -q origin main 2>/dev/null
+if ! git rev-parse -q --verify HEAD >/dev/null && git rev-parse -q --verify origin/main >/dev/null; then
+  git reset -q --soft origin/main
+fi
+git branch -M main
+git add -A
+if git commit -q -m "Update $(date '+%Y-%m-%d %H:%M')" >/dev/null 2>&1; then echo "Änderungen gespeichert."; else echo "Keine neuen Änderungen."; fi
 if git push -u origin main; then
   echo ""
   echo "Fertig: https://github.com/$OWNER/$REPO"
